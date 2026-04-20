@@ -14,6 +14,8 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.finance import router as finance_router
 from app.api.v1.finance.accounting_monitoring import router as monitoring_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.agents import router as agents_router
+from app.api.v1.supply_chain import router as supply_chain_router
 
 security = HTTPBearer()
 
@@ -71,6 +73,8 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["Administration"])
 app.include_router(finance_router, prefix="/api/v1/finance", tags=["Finance"])
 app.include_router(monitoring_router, prefix="/api/v1/finance", tags=["Accounting Monitoring"])
+app.include_router(agents_router, prefix="/api/v1/agents", tags=["Agents"])
+app.include_router(supply_chain_router, prefix="/api/v1/supply-chain", tags=["Supply Chain"])
 
 
 if __name__ == "__main__":
