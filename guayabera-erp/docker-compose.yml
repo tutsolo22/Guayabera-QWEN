@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: guayabera-erp-db
+    environment:
+      POSTGRES_DB: guayabera_erp
+      POSTGRES_USER: guayabera_user
+      POSTGRES_PASSWORD: guayabera_pass_2025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - guayabera-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guayabera_user -d guayabera_erp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caché y colas
+  redis:
+    image: redis:7-alpine
+    container_name: guayabera-erp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - guayabera-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: guayabera-erp-api
+    environment:
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: tu-secret-key-aqui-cambiar-en-produccion
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./guayabera-cad:/app/guayabera-cad
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - guayabera-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend React
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: guayabera-erp-web
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_CAD_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - guayabera-network
+    command: npm start
+
+  # GuayaberaCAD (tu MVP integrado) - TEMPORALMENTE DESACTIVADO
+  # cad:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/Dockerfile.cad
+  #   container_name: guayabera-cad
+  #   environment:
+  #     NODE_ENV: development
+  #   ports:
+  #     - "3001:3000"
+  #   volumes:
+  #     - ./guayabera-cad:/app
+  #     - /app/node_modules
+  #   networks:
+  #     - guayabera-network
+  #   command: npm start
+
+  # Celery Worker (tareas asíncronas)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: guayabera-erp-worker
+    environment:
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - guayabera-network
+    command: celery -A app.workers.celery_app worker --loglevel=info
+
+  # Celery Beat (tareas programadas)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: guayabera-erp-beat
+    environment:
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - guayabera-network
+    command: celery -A app.workers.celery_app beat --loglevel=info
+
+  # PgAdmin (administración de BD)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: guayabera-erp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@guayabera-erp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - guayabera-network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  guayabera-network:
+    driver: bridge

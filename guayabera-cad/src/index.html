@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline';">
+  <title>GuayaberaCAD - Diseño de Guayaberas Yucatecas</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">🧵 GuayaberaCAD</div>
+      <nav class="nav">
+        <button id="btn-new" class="btn btn-primary">Nueva Prenda</button>
+        <button id="btn-load" class="btn btn-secondary">Cargar Pieza</button>
+        <button id="btn-save" class="btn btn-secondary">Guardar Pieza</button>
+        <button id="btn-export" class="btn btn-success">Exportar DXF</button>
+      </nav>
+      <div class="license-status" id="license-status">
+        <span class="status-dot"></span>
+        <span class="status-text">Sin licencia</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Left Sidebar - Tools -->
+      <aside class="sidebar-left">
+        <h3>Herramientas</h3>
+        <div class="tool-section">
+          <h4>Piezas Básicas</h4>
+          <button class="tool-btn" data-tool="frente">Frente</button>
+          <button class="tool-btn" data-tool="espalda">Espalda</button>
+          <button class="tool-btn" data-tool="manga">Manga</button>
+          <button class="tool-btn" data-tool="cuello">Cuello</button>
+          <button class="tool-btn" data-tool="bolsillo">Bolsillo</button>
+        </div>
+        
+        <div class="tool-section">
+          <h4>Elementos Técnicos</h4>
+          <button class="tool-btn" data-tool="alforzas">Alforzas</button>
+          <button class="tool-btn" data-tool="ojales">Ojales</button>
+          <button class="tool-btn" data-tool="costura">Margen Costura</button>
+          <button class="tool-btn" data-tool="notches">Notches</button>
+        </div>
+        
+        <div class="tool-section">
+          <h4>Generador Automático</h4>
+          <select id="size-select" class="form-control">
+            <option value="XS">XS</option>
+            <option value="S">S</option>
+            <option value="M" selected>M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="2XL">2XL</option>
+            <option value="3XL">3XL</option>
+          </select>
+          <button id="btn-generate" class="btn btn-primary full-width">Generar Guayabera</button>
+        </div>
+      </aside>
+
+      <!-- Center - Canvas -->
+      <main class="canvas-area">
+        <div class="canvas-toolbar">
+          <button id="btn-select" class="canvas-btn active" title="Seleccionar">🖱️</button>
+          <button id="btn-move" class="canvas-btn" title="Mover">✋</button>
+          <button id="btn-zoom-in" class="canvas-btn" title="Zoom +">🔍+</button>
+          <button id="btn-zoom-out" class="canvas-btn" title="Zoom -">🔍-</button>
+          <button id="btn-delete" class="canvas-btn" title="Eliminar">🗑️</button>
+          <div class="zoom-display" id="zoom-display">100%</div>
+        </div>
+        
+        <div class="canvas-container">
+          <canvas id="fabric-canvas"></canvas>
+        </div>
+        
+        <div class="canvas-info">
+          <span id="cursor-position">X: 0, Y: 0</span>
+          <span id="canvas-dimensions">150 cm × 100 cm</span>
+        </div>
+      </main>
+
+      <!-- Right Sidebar - Parameters -->
+      <aside class="sidebar-right">
+        <div id="param-panel">
+          <h3>Parámetros</h3>
+          <div id="params-content">
+            <p class="no-selection">Selecciona una pieza para editar sus parámetros</p>
+          </div>
+        </div>
+        
+        <div id="piece-library">
+          <h3>Galería de Piezas</h3>
+          <div id="library-content">
+            <p class="empty-library">No hay piezas guardadas</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="status-bar">
+        <span id="status-message">Listo para diseñar</span>
+      </div>
+      <div class="measurements">
+        <span>Escala: 1 cm = 37.8 px</span>
+        <span id="total-pieces">Piezas: 0</span>
+      </div>
+    </footer>
+
+    <!-- License Modal -->
+    <div id="license-modal" class="modal hidden">
+      <div class="modal-content">
+        <h2>🔐 Activar Licencia</h2>
+        <p>Ingresa tu clave de activación para usar GuayaberaCAD</p>
+        <input type="text" id="license-key" placeholder="XXXX-XXXX-XXXX-XXXX" class="form-control">
+        <button id="btn-activate" class="btn btn-primary full-width">Activar</button>
+        <p class="help-text">Para pruebas usa: DEV0-0000-0000-0000</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

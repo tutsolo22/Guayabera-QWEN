@@ -1,0 +1,25 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Instalar dependencias
+COPY frontend/package.json ./
+COPY frontend/package-lock.json* ./
+
+# Limpiar cache de npm
+RUN npm cache clean --force
+
+# Instalar con legacy peer deps y después force ajv
+RUN npm install --legacy-peer-deps 2>&1 || npm install --legacy-peer-deps --force
+
+# Instalar ajv específicamente para resolver el problema
+RUN npm install ajv@^8.12.0 --save --legacy-peer-deps
+
+# Copiar código
+COPY frontend/ ./
+
+# Exponer puerto
+EXPOSE 3000
+
+# Ejecutar en modo desarrollo
+CMD ["npm", "start"]

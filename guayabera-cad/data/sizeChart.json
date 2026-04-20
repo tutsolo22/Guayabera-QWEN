@@ -1,0 +1,75 @@
+{
+  "sizes": {
+    "XS": {
+      "pecho": 48,
+      "cintura": 42,
+      "largo": 70,
+      "manga": 20,
+      "anchoManga": 16,
+      "edadTipica": "18-25"
+    },
+    "S": {
+      "pecho": 52,
+      "cintura": 46,
+      "largo": 72,
+      "manga": 21,
+      "anchoManga": 17,
+      "edadTipica": "20-30"
+    },
+    "M": {
+      "pecho": 56,
+      "cintura": 50,
+      "largo": 74,
+      "manga": 22,
+      "anchoManga": 18,
+      "edadTipica": "25-40"
+    },
+    "L": {
+      "pecho": 60,
+      "cintura": 54,
+      "largo": 76,
+      "manga": 23,
+      "anchoManga": 19,
+      "edadTipica": "30-50"
+    },
+    "XL": {
+      "pecho": 64,
+      "cintura": 58,
+      "largo": 78,
+      "manga": 24,
+      "anchoManga": 20,
+      "edadTipica": "35-55"
+    },
+    "2XL": {
+      "pecho": 68,
+      "cintura": 62,
+      "largo": 79,
+      "manga": 25,
+      "anchoManga": 21,
+      "edadTipica": "45-65"
+    },
+    "3XL": {
+      "pecho": 72,
+      "cintura": 66,
+      "largo": 80,
+      "manga": 26,
+      "anchoManga": 22,
+      "edadTipica": "50+"
+    }
+  },
+  "garmentConfig": {
+    "holgura": 3,
+    "margenCostura": 1,
+    "primerOjalCuello": 2.5,
+    "numOjales": 5,
+    "espaciadoOjales": 8,
+    "numAlforzas": 6,
+    "espaciadoAlforzas": 1.2,
+    "margenCentro": 3,
+    "anchoListon": 0.4,
+    "tipoCuello": "Italiano",
+    "tipoManga": "Corta con pliegue de ventilación de 2 cm"
+  },
+  "fabricWidth": 150,
+  "scale": 37.8
+}
