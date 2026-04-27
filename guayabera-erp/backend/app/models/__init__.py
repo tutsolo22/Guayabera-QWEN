@@ -17,6 +17,13 @@ from app.models.finance import (
     Banco, MovimientoBancario, AsientoContable, PeriodoContable
 )
 
+from app.models.supply_chain import (
+    Proveedor, ProveedorContacto,
+    Producto, AlmacenCategoria, ProductoPrecio, ProductoNumeroSerie, ProductoLote,
+    Almacen, Inventario, MovimientoInventario, AlmacenListaPrecios,
+    OrdenCompra, OrdenCompraDetalle, RecepcionCompra, RecepcionCompraDetalle
+)
+
 __all__ = [
     # Base
     "Base",
@@ -30,4 +37,10 @@ __all__ = [
     # Finance
     "CuentaContable", "CentroCosto", "PolizaContable", "MovimientoPoliza",
     "Banco", "MovimientoBancario", "AsientoContable", "PeriodoContable",
+    
+    # Supply Chain
+    "Proveedor", "ProveedorContacto",
+    "Producto", "AlmacenCategoria", "ProductoPrecio", "ProductoNumeroSerie", "ProductoLote",
+    "Almacen", "Inventario", "MovimientoInventario", "AlmacenListaPrecios",
+    "OrdenCompra", "OrdenCompraDetalle", "RecepcionCompra", "RecepcionCompraDetalle",
 ]
