@@ -42,11 +42,14 @@ class Usuario(Base):
     ultimo_acceso = Column(DateTime(timezone=True))
     intentos_fallidos = Column(Integer, default=0)
     bloqueado = Column(Boolean, default=False)
+    mfa_enabled = Column(Boolean, default=False)  # Whether MFA is enabled for this user
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
     roles = relationship("Rol", secondary=usuario_rol, back_populates="usuarios")
+    metodos_mfa = relationship("MetodoMFA", back_populates="usuario")
+    sesiones_mfa = relationship("SesionMFA", back_populates="usuario")
 
     def to_dict(self):
         return {
@@ -56,7 +59,8 @@ class Usuario(Base):
             "nombre": self.nombre,
             "apellidos": self.apellidos,
             "activo": self.activo,
-            "ultimo_acceso": self.ultimo_acceso
+            "ultimo_acceso": self.ultimo_acceso,
+            "mfa_enabled": self.mfa_enabled
         }
 
 
@@ -116,3 +120,51 @@ class Auditoria(Base):
     
     # Timestamp
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+
+class MetodoMFA(Base):
+    """MFA Methods for users"""
+    __tablename__ = "seg_metodo_mfa"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)
+    
+    # Method type (totp, sms, email, backup)
+    tipo = Column(String(20), nullable=False)
+    
+    # Activation status
+    activado = Column(Boolean, default=True)
+    fecha_activacion = Column(DateTime(timezone=True))
+    fecha_desactivacion = Column(DateTime(timezone=True))
+    
+    # Method-specific details
+    secreto = Column(String(255))  # For TOTP or hashed backup codes
+    telefono = Column(String(20))  # For SMS
+    email = Column(String(100))    # For email-based MFA
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    usuario = relationship("Usuario", back_populates="metodos_mfa")
+
+
+class SesionMFA(Base):
+    """MFA Sessions to track authenticated sessions"""
+    __tablename__ = "seg_sesion_mfa"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)
+    sesion_id = Column(String(255), unique=True, nullable=False, index=True)  # Reference to auth session
+    
+    # Session status
+    activa = Column(Boolean, default=True)
+    fecha_expiracion = Column(DateTime(timezone=True), nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    usuario = relationship("Usuario", back_populates="sesiones_mfa")

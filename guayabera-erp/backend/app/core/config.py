@@ -1,51 +1,73 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
+"""
+Configuration module for GuayaberaERP
+Handles environment variables and application settings
+"""
+
 import os
-import json
+from typing import List, Optional
+from pydantic import BaseSettings
+from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """
+    Application settings loaded from environment variables
+    """
+    # Database settings
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/guayabera_erp")
     
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    # Security settings
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
-    # App
-    APP_NAME: str = "GuayaberaERP"
-    APP_VERSION: str = "0.1.0"
-    DEBUG: bool = True
+    # CORS settings
+    CORS_ORIGINS: List[str] = os.getenv("CORS_ORIGINS", "http://localhost,http://localhost:3000").split(",")
     
-    # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://guayabera_user:guayabera_pass_2025@localhost:5432/guayabera_erp"
-    )
+    # Facturama settings
+    FACTURAMA_API_KEY: str = os.getenv("FACTURAMA_API_KEY", "")
+    FACTURAMA_EMAIL: str = os.getenv("FACTURAMA_EMAIL", "")
+    USE_PRODUCTION_FACTURAMA: bool = os.getenv("USE_PRODUCTION_FACTURAMA", "False").lower() == "true"
     
-    # Redis
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    # Storage settings
+    STATIC_FILES_PATH: str = os.getenv("STATIC_FILES_PATH", "./static")
     
-    # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-change-this")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # Celery settings
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
     
-    # CORS - NO se lee desde .env, valores por defecto
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:8000"
-    ]
+    # Redis settings
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
     
-    # SAT México (para facturación)
-    SAT_AMBIENTE: str = "pruebas"  # pruebas o produccion
-    PAC_API_URL: str = "https://api.finkok.com/v1"
-    
-    # Configuración textil
-    FABRIC_DEFAULT_WIDTH: float = 150.0  # cm
-    SCALE_CM_TO_PX: float = 37.8
+    class Config:
+        case_sensitive = True
 
 
-settings = Settings()
+@lru_cache()
+def get_settings():
+    """
+    Cached settings instance to avoid reloading from environment multiple times
+    """
+    return Settings()
+
+
+# Global settings instance
+settings = get_settings()
+
+
+def validate_facturama_config():
+    """
+    Validates that Facturama configuration is properly set
+    """
+    if not settings.FACTURAMA_API_KEY or not settings.FACTURAMA_EMAIL:
+        print("⚠️ WARNING: Facturama API credentials are not configured.")
+        print("Please set FACTURAMA_API_KEY and FACTURAMA_EMAIL environment variables.")
+        print("Without these, electronic invoicing features will not work properly.")
+        return False
+    return True
+
+
+# Validate Facturama config on import
+validate_facturama_config()
