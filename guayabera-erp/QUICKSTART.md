@@ -74,6 +74,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 |----------|-----|--------------|
 | **API Backend** | http://localhost:8000 | - |
 | **API Docs (Swagger)** | http://localhost:8000/docs | - |
+| **API Docs (Redoc)** | http://localhost:8000/redoc | - |
 | **GuayaberaCAD** | http://localhost:3001 | DEV0-0000-0000-0000 |
 | **PgAdmin (BD)** | http://localhost:5050 | admin@guayabera-erp.com / admin123 |
 | **Redis** | localhost:6379 | Sin contraseña |
@@ -81,7 +82,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ---
 
-## 📚 Endpoints Disponibles (Fase 1)
+## 📚 Endpoints Disponibles (Todos los módulos completos)
 
 ### Administración
 ```
@@ -109,27 +110,83 @@ GET    /api/v1/auth/me                     # Info usuario actual
 POST   /api/v1/auth/logout                 # Logout
 ```
 
----
+### Compras
+```
+POST   /api/v1/supply-chain/proveedores    # Crear proveedor
+GET    /api/v1/supply-chain/proveedores    # Listar proveedores
+POST   /api/v1/supply-chain/ordenes-compra # Crear orden de compra
+GET    /api/v1/supply-chain/ordenes-compra # Listar órdenes
+```
 
-## 🗃️ Estructura de Base de Datos
+### Ventas
+```
+POST   /api/v1/sales/clientes              # Crear cliente
+GET    /api/v1/sales/clientes              # Listar clientes
+POST   /api/v1/sales/pedidos               # Crear pedido
+GET    /api/v1/sales/pedidos               # Listar pedidos
+POST   /api/v1/sales/cotizaciones          # Crear cotización
+GET    /api/v1/sales/cotizaciones          # Listar cotizaciones
+```
 
-### Tablas Creadas (Automáticamente al iniciar)
+### Inventario
+```
+POST   /api/v1/inventory/productos         # Crear producto
+GET    /api/v1/inventory/productos         # Listar productos
+POST   /api/v1/inventory/movimientos       # Registrar movimiento
+GET    /api/v1/inventory/movimientos       # Listar movimientos
+```
 
-```sql
--- Núcleo Administrativo
-admin_empresa           # Datos fiscales de la empresa
-admin_sucursal          # Sucursales/almacenes
-admin_configuracion     # Configuración key-value
-admin_moneda           # Monedas (MXN, USD, etc.)
-admin_impuesto         # Impuestos (IVA, ISR, etc.)
+### Producción
+```
+POST   /api/v1/production/ordenes          # Crear orden de producción
+GET    /api/v1/production/ordenes          # Listar órdenes
+POST   /api/v1/production/recetas          # Crear receta de producción
+GET    /api/v1/production/recetas          # Listar recetas
+```
 
--- Seguridad
-seg_usuario            # Usuarios del sistema
-seg_rol                # Roles (Admin, Contador, etc.)
-seg_permiso            # Permisos (ver, crear, editar, eliminar)
-seg_usuario_rol        # Relación usuario-roles
-seg_rol_permiso        # Relación roles-permisos
-seg_auditoria          # Bitáora completa de cambios
+### Contabilidad
+```
+POST   /api/v1/finance/polizas             # Crear póliza contable
+GET    /api/v1/finance/polizas             # Listar pólizas
+POST   /api/v1/finance/cuentas             # Crear cuenta contable
+GET    /api/v1/finance/cuentas             # Listar cuentas
+POST   /api/v1/finance/bancos              # Crear cuenta bancaria
+GET    /api/v1/finance/bancos              # Listar cuentas bancarias
+```
+
+### Facturación Electrónica
+```
+POST   /api/v1/invoice/comprobantes        # Crear comprobante fiscal
+GET    /api/v1/invoice/comprobantes        # Listar comprobantes
+POST   /api/v1/invoice/conceptos           # Crear concepto fiscal
+GET    /api/v1/invoice/conceptos           # Listar conceptos
+POST   /api/v1/invoice/timbrar/{id}        # Timbrar CFDI con Facturama
+POST   /api/v1/invoice/cancelar/{id}       # Cancelar CFDI
+```
+
+### Nómina Electrónica
+```
+POST   /api/v1/payroll/periods             # Crear período de nómina
+GET    /api/v1/payroll/periods             # Listar períodos
+POST   /api/v1/payroll                     # Crear nómina
+GET    /api/v1/payroll                     # Listar nóminas
+POST   /api/v1/payroll/perceptions         # Crear percepción
+GET    /api/v1/payroll/perceptions         # Listar percepciones
+POST   /api/v1/payroll/deductions          # Crear deducción
+GET    /api/v1/payroll/deductions          # Listar deducciones
+POST   /api/v1/payroll/incapacities        # Crear incapacidad
+GET    /api/v1/payroll/incapacities        # Listar incapacidades
+POST   /api/v1/payroll/other-payments      # Crear otro pago
+GET    /api/v1/payroll/other-payments      # Listar otros pagos
+```
+
+### Configuración de Correo
+```
+POST   /api/v1/email-config                # Crear configuración de correo
+GET    /api/v1/email-config                # Obtener configuración
+PUT    /api/v1/email-config/{id}           # Actualizar configuración
+POST   /api/v1/email-config/test           # Probar configuración de correo
+GET    /api/v1/email-config/history        # Historial de envíos
 ```
 
 ---

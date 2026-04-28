@@ -14,6 +14,29 @@ import {
   FileTextOutlined,
   CalculatorOutlined,
   SyncOutlined,
+  SkinOutlined,
+  ToolOutlined,
+  ShoppingOutlined,
+  StockOutlined,
+  UsergroupAddOutlined,
+  AppstoreOutlined,
+  ShopOutlined,
+  TransactionOutlined,
+  FileProtectOutlined,
+  DesktopOutlined,
+  ShoppingCartOutlined,
+  ProfileOutlined,
+  CustomerServiceOutlined,
+  FileSyncOutlined,
+  NotificationOutlined,
+  SafetyCertificateOutlined,
+  CarOutlined,
+  TeamOutlined,
+  ProjectOutlined,
+  ApartmentOutlined,
+  BarChartOutlined,
+  PieChartOutlined,
+  LockOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/features/auth/authSlice';
@@ -59,6 +82,126 @@ const MainLayout: React.FC = () => {
         { key: '/finance/balanza', icon: <CalculatorOutlined />, label: 'Balanza de Comprobación' },
         { key: '/finance/asientos-automaticos', icon: <SyncOutlined />, label: 'Asientos Automáticos' },
       ],
+    },
+    {
+      key: '/production',
+      icon: <ToolOutlined />,
+      label: 'Producción',
+    },
+    {
+      key: '/sales',
+      icon: <ShoppingOutlined />,
+      label: 'Ventas',
+    },
+    {
+      key: '/inventory',
+      icon: <StockOutlined />,
+      label: 'Inventario',
+    },
+    {
+      key: '/hr',
+      icon: <UsergroupAddOutlined />,
+      label: 'Recursos Humanos',
+    },
+    {
+      key: '/supply-chain',
+      icon: <ShopOutlined />,
+      label: 'Cadena de Suministro',
+    },
+    {
+      key: '/purchases',
+      icon: <ShoppingCartOutlined />,
+      label: 'Compras',
+    },
+    {
+      key: '/invoice',
+      icon: <TransactionOutlined />,
+      label: 'Facturación Electrónica',
+    },
+    {
+      key: '/payroll',
+      icon: <FileProtectOutlined />,
+      label: 'Nómina Electrónica',
+    },
+    {
+      key: '/agents',
+      icon: <DesktopOutlined />,
+      label: 'Agentes Locales',
+    },
+    {
+      key: '/cad',
+      icon: <DesktopOutlined />,
+      label: 'Diseño CAD',
+    },
+    {
+      key: '/size-chart',
+      icon: <ProfileOutlined />,
+      label: 'Gráficos de Talla',
+    },
+    {
+      key: '/helpdesk',
+      icon: <CustomerServiceOutlined />,
+      label: 'Helpdesk',
+    },
+    {
+      key: '/requisitions',
+      icon: <FileSyncOutlined />,
+      label: 'Requisiciones',
+    },
+    {
+      key: '/notifications',
+      icon: <NotificationOutlined />,
+      label: 'Notificaciones',
+    },
+    {
+      key: '/quality-control',
+      icon: <SafetyCertificateOutlined />,
+      label: 'Control de Calidad',
+    },
+    {
+      key: '/advanced-accounting',
+      icon: <CalculatorOutlined />,
+      label: 'Contabilidad Avanzada',
+    },
+    {
+      key: '/logistics',
+      icon: <CarOutlined />,
+      label: 'Logística',
+    },
+    {
+      key: '/crm',
+      icon: <TeamOutlined />,
+      label: 'CRM',
+    },
+    {
+      key: '/project-management',
+      icon: <ProjectOutlined />,
+      label: 'Gestión de Proyectos',
+    },
+    {
+      key: '/asset-management',
+      icon: <ApartmentOutlined />,
+      label: 'Gestión de Activos',
+    },
+    {
+      key: '/business-intelligence',
+      icon: <BarChartOutlined />,
+      label: 'Inteligencia de Negocios',
+    },
+    {
+      key: '/reports',
+      icon: <PieChartOutlined />,
+      label: 'Reportes',
+    },
+    {
+      key: '/permissions',
+      icon: <LockOutlined />,
+      label: 'Permisos',
+    },
+    {
+      key: '/settings',
+      icon: <SkinOutlined />,
+      label: 'Configuración',
     },
   ];
 

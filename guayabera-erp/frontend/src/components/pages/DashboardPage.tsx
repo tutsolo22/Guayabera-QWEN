@@ -1,195 +1,724 @@
 import React from 'react';
-import { Row, Col, Card, Statistic, Table, Typography, Tag, Spin } from 'antd';
-import {
-  BankOutlined,
-  FileTextOutlined,
-  WalletOutlined,
-  SyncOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
+import { Card, Row, Col, Statistic, Button, Space, Typography, Tooltip } from 'antd';
+import { 
+  ArrowUpOutlined, 
+  ArrowDownOutlined, 
+  DollarCircleOutlined, 
+  ShoppingCartOutlined, 
+  TeamOutlined, 
+  AppstoreOutlined,
+  ToolOutlined,
+  ShoppingOutlined,
+  StockOutlined,
+  UsergroupAddOutlined,
+  AccountBookOutlined,
+  SettingOutlined,
+  ShopOutlined,
+  TransactionOutlined,
+  FileProtectOutlined,
+  DesktopOutlined,
+  ProfileOutlined,
+  CustomerServiceOutlined,
+  FileSyncOutlined,
+  NotificationOutlined,
+  SafetyCertificateOutlined,
+  CarOutlined,
+  TeamOutlined as TeamOutlined2,
+  ProjectOutlined,
+  ApartmentOutlined,
+  BarChartOutlined,
+  PieChartOutlined,
+  LockOutlined,
+  ToolOutlined
 } from '@ant-design/icons';
-import { useGetCuentasQuery, useGetPolizasQuery, useGetBancosQuery, useGetAsientosEstadisticasQuery } from '../../services/financeApi';
-import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 
 const DashboardPage: React.FC = () => {
-  const { data: cuentas, isLoading: loadingCuentas } = useGetCuentasQuery();
-  const { data: polizas, isLoading: loadingPolizas } = useGetPolizasQuery();
-  const { data: bancos, isLoading: loadingBancos } = useGetBancosQuery();
-    const { data: asientosStats, isLoading: loadingAsientos } = useGetAsientosEstadisticasQuery({});
-
-  const totalCuentas = cuentas?.length || 0;
-  const totalPolizas = polizas?.length || 0;
-  const totalBancos = bancos?.length || 0;
-  const asientosHoy = asientosStats?.last_24h || 0;
-
-  const recentPolizas = polizas?.slice(0, 5) || [];
-
-  const columns = [
-    {
-      title: 'Número',
-      dataIndex: 'numero',
-      key: 'numero',
-      render: (num: number) => <strong>#{num}</strong>,
-    },
-    {
-      title: 'Tipo',
-      dataIndex: 'tipo',
-      key: 'tipo',
-      render: (tipo: string) => {
-        const colors: any = { diario: 'blue', ingreso: 'green', egreso: 'orange' };
-        return <Tag color={colors[tipo]}>{tipo.toUpperCase()}</Tag>;
-      },
-    },
-    {
-      title: 'Fecha',
-      dataIndex: 'fecha',
-      key: 'fecha',
-      render: (fecha: string) => dayjs(fecha).format('DD/MM/YYYY'),
-    },
-    {
-      title: 'Descripción',
-      dataIndex: 'descripcion',
-      key: 'descripcion',
-      ellipsis: true,
-    },
-    {
-      title: 'Estado',
-      dataIndex: 'estado',
-      key: 'estado',
-      render: (estado: string) => {
-        const colors: any = {
-          borrador: 'default',
-          revisada: 'processing',
-          aprobada: 'success',
-          cancelada: 'error',
-        };
-        return <Tag color={colors[estado]}>{estado.toUpperCase()}</Tag>;
-      },
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total_cargos',
-      key: 'total_cargos',
-      render: (total: number) => `$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-    },
-  ];
-
-  if (loadingCuentas || loadingPolizas || loadingBancos || loadingAsientos) {
-    return (
-      <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" tip="Cargando dashboard..." />
-      </div>
-    );
-  }
+  const navigate = useNavigate();
 
   return (
     <div>
-      <Title level={3} style={{ marginBottom: 24 }}>Dashboard General</Title>
-
-      {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" hoverable>
-            <Statistic
-              title="Cuentas Contables"
-              value={totalCuentas}
-              prefix={<BankOutlined />}
-              suffix={totalCuentas > 0 ? <ArrowUpOutlined style={{ color: '#52c41a' }} /> : null}
-              valueStyle={{ color: '#1890ff' }}
+      <Title level={2}>Panel de Control</Title>
+      
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card className="stat-card">
+            <Statistic 
+              title="Ventas Hoy" 
+              value={12} 
+              prefix={<ShoppingCartOutlined />} 
+              valueStyle={{ color: '#3f8600' }} 
             />
-            <div className="stat-card-label">Catálogo SAT importado</div>
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" hoverable>
-            <Statistic
-              title="Pólizas Registradas"
-              value={totalPolizas}
-              prefix={<FileTextOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+        <Col span={6}>
+          <Card className="stat-card">
+            <Statistic 
+              title="Ingresos Hoy" 
+              value="$42,500" 
+              precision={2}
+              prefix={<DollarCircleOutlined />} 
+              valueStyle={{ color: '#3f8600' }} 
             />
-            <div className="stat-card-label">Diario, ingreso y egreso</div>
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" hoverable>
-            <Statistic
-              title="Cuentas Bancarias"
-              value={totalBancos}
-              prefix={<WalletOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
+        <Col span={6}>
+          <Card className="stat-card">
+            <Statistic 
+              title="Clientes" 
+              value={124} 
+              prefix={<TeamOutlined />} 
+              valueStyle={{ color: '#1890ff' }} 
             />
-            <div className="stat-card-label">Bancos activos</div>
           </Card>
         </Col>
-
-        <Col xs={24} sm={12} lg={6}>
-          <Card className="stat-card" hoverable>
-            <Statistic
-              title="Asientos Hoy"
-              value={asientosHoy}
-              prefix={<SyncOutlined spin={asientosHoy > 0} />}
-              valueStyle={{ color: asientosHoy > 0 ? '#52c41a' : '#666' }}
+        <Col span={6}>
+          <Card className="stat-card">
+            <Statistic 
+              title="Pedidos Pendientes" 
+              value={8} 
+              prefix={<ArrowDownOutlined />} 
+              valueStyle={{ color: '#cf1322' }} 
             />
-            <div className="stat-card-label">Asientos automáticos (24h)</div>
           </Card>
         </Col>
       </Row>
 
-      {/* Automatic Accounting Status */}
-      {asientosStats && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col span={24}>
-            <Card title="Estado de Asientos Automáticos" bordered={false}>
-              <Row gutter={16}>
-                <Col span={6}>
-                  <Statistic
-                    title="Procesados"
-                    value={asientosStats.by_status?.procesado || 0}
-                    valueStyle={{ color: '#52c41a' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="Pendientes"
-                    value={asientosStats.by_status?.pendiente || 0}
-                    valueStyle={{ color: '#faad14' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="Fallidos"
-                    value={asientosStats.by_status?.fallido || 0}
-                    valueStyle={{ color: '#ff4d4f' }}
-                  />
-                </Col>
-                <Col span={6}>
-                  <Statistic
-                    title="Requieren Atención"
-                    value={asientosStats.requires_intervention || 0}
-                    valueStyle={{ color: '#ff4d4f' }}
-                  />
-                </Col>
-              </Row>
-            </Card>
-          </Col>
-        </Row>
-      )}
+      <Row gutter={16}>
+        <Col span={24}>
+          <Title level={3}>Módulos del Sistema</Title>
+        </Col>
+      </Row>
 
-      {/* Recent Policies Table */}
-      <Card title="Pólizas Recientes" bordered={false}>
-        <Table
-          columns={columns}
-          dataSource={recentPolizas}
-          rowKey="id"
-          pagination={false}
-          locale={{ emptyText: 'No hay pólizas registradas' }}
-        />
-      </Card>
+      <Row gutter={16}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <AccountBookOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/finance/cuentas')}>Catálogo de Cuentas</Button>,
+              <Button type="link" onClick={() => navigate('/finance/polizas')}>Pólizas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Contabilidad"
+              description="Gestión de cuentas, pólizas y asientos contables"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ToolOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/production')}>Órdenes de Producción</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Producción"
+              description="Gestión de órdenes de producción y control de calidad"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ShoppingOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/sales')}>Ventas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Ventas"
+              description="Gestión de clientes, pedidos y cotizaciones"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <StockOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/inventory')}>Inventario</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Inventario"
+              description="Gestión de productos y niveles de stock"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <UsergroupAddOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/hr')}>Empleados</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Recursos Humanos"
+              description="Gestión de empleados y nóminas"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ShopOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/supply-chain')}>Proveedores</Button>,
+              <Button type="link" onClick={() => navigate('/supply-chain')}>Órdenes Compra</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Cadena de Suministro"
+              description="Gestión de proveedores y compras"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ShoppingCartOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/purchases')}>Solicitudes</Button>,
+              <Button type="link" onClick={() => navigate('/purchases')}>Ordenes Compra</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Compras"
+              description="Gestión de solicitudes y órdenes de compra"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <TransactionOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/invoice')}>Facturas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Facturación Electrónica"
+              description="Emisión y manejo de CFDI"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <FileProtectOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/payroll')}>Nóminas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Nómina Electrónica"
+              description="Gestión de recibos y percepciones/deducciones"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <DesktopOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/agents')}>Gestionar Agentes</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Agentes Locales"
+              description="Gestión de agentes para tareas locales"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ProfileOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/size-chart')}>Gráficos</Button>,
+              <Button type="link" onClick={() => navigate('/size-chart')}>Tallas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Gráficos de Talla"
+              description="Tablas de medidas y tallas"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <DesktopOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/cad')}>Diseños</Button>,
+              <Button type="link" onClick={() => navigate('/cad')}>Modelos 3D</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Diseño CAD"
+              description="Diseño técnico y modelos 3D"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #a6c0fe 0%, #f68084 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <SafetyCertificateOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/quality-control')}>Inspecciones</Button>,
+              <Button type="link" onClick={() => navigate('/quality-control')}>Reportes</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Control de Calidad"
+              description="Inspecciones y estándares de calidad"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <CarOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/logistics')}>Envíos</Button>,
+              <Button type="link" onClick={() => navigate('/logistics')}>Rutas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Logística"
+              description="Gestión de envíos y transporte"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <TeamOutlined2 style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/crm')}>Clientes</Button>,
+              <Button type="link" onClick={() => navigate('/crm')}>Oportunidades</Button>
+            ]}
+          >
+            <Card.Meta
+              title="CRM"
+              description="Relación con clientes"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ProjectOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/project-management')}>Proyectos</Button>,
+              <Button type="link" onClick={() => navigate('/project-management')}>Tareas</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Gestión de Proyectos"
+              description="Planificación y seguimiento"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <ApartmentOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/asset-management')}>Activos</Button>,
+              <Button type="link" onClick={() => navigate('/asset-management')}>Mantenimiento</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Gestión de Activos"
+              description="Inventario de activos fijos"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <BarChartOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/business-intelligence')}>Reportes</Button>,
+              <Button type="link" onClick={() => navigate('/business-intelligence')}>KPIs</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Inteligencia de Negocios"
+              description="Análisis y toma de decisiones"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <FileSyncOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/requisitions')}>Solicitudes</Button>,
+              <Button type="link" onClick={() => navigate('/requisitions')}>Aprobaciones</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Requisiciones"
+              description="Solicitudes internas y aprobaciones"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <CustomerServiceOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/helpdesk')}>Tickets</Button>,
+              <Button type="link" onClick={() => navigate('/helpdesk')}>Soporte</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Helpdesk"
+              description="Soporte técnico y atención"
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 16 }}>
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <NotificationOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/notifications')}>Alertas</Button>,
+              <Button type="link" onClick={() => navigate('/notifications')}>Mensajes</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Notificaciones"
+              description="Centro de mensajes y alertas"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #da22ff 0%, #9733ee 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <PieChartOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/reports')}>Generar Reporte</Button>,
+              <Button type="link" onClick={() => navigate('/reports')}>Ver Históricos</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Sistema de Reportes"
+              description="Generación y gestión de reportes para todos los módulos"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <LockOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/permissions')}>Gestionar Permisos</Button>,
+              <Button type="link" onClick={() => navigate('/permissions')}>Asignar Roles</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Gestión de Permisos"
+              description="Roles, permisos y asignación a usuarios"
+            />
+          </Card>
+        </Col>
+        
+        <Col span={6}>
+          <Card 
+            hoverable
+            cover={
+              <div style={{ 
+                height: 120, 
+                background: 'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <SettingOutlined style={{ fontSize: '48px', color: 'white' }} />
+              </div>
+            }
+            actions={[
+              <Button type="link" onClick={() => navigate('/settings')}>Configuración</Button>
+            ]}
+          >
+            <Card.Meta
+              title="Configuración"
+              description="Configuración del sistema y temas"
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 };
