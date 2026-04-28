@@ -8,6 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
+import enum
 
 from app.core.database import Base
 
@@ -44,6 +45,7 @@ class Empresa(Base):
 
     # Relationships
     sucursales = relationship("Sucursal", back_populates="empresa")
+    configuraciones_correo = relationship("ConfiguracionCorreo", back_populates="empresa")
 
 
 class Sucursal(Base):
@@ -112,5 +114,33 @@ class Impuesto(Base):
     vigente_desde = Column(DateTime(timezone=True))
     vigente_hasta = Column(DateTime(timezone=True))
     activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class ConfiguracionCorreoTipo(enum.Enum):
+    """Email configuration types"""
+    SMTP = "smtp"
+    OFFICE365 = "office365"
+    AMAZON_SES = "amazon_ses"
+    GOOGLE_WORKSPACE = "google_workspace"
+
+
+class ConfiguracionCorreo(Base):
+    """Email configuration for a company"""
+    __tablename__ = "admin_configuracion_correo"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
+    nombre = Column(String(100), nullable=False)  # Configuration name (e.g., "Correo Principal")
+    tipo = Column(String(50), nullable=False)  # See ConfiguracionCorreoTipo enum
+    servidor = Column(String(255), nullable=False)
+    puerto = Column(Integer, nullable=False)
+    correo = Column(String(255), nullable=False)
+    usuario = Column(String(255), nullable=False)
+    contrasena = Column(String(255), nullable=False)
+    seguridad = Column(String(50))  # SSL/TLS, etc.
+    activo = Column(Boolean, default=True)
+    predeterminado = Column(Boolean, default=False)  # Is this the default configuration?
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

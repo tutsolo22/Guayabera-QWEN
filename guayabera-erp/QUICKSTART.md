@@ -74,6 +74,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 |----------|-----|--------------|
 | **API Backend** | http://localhost:8000 | - |
 | **API Docs (Swagger)** | http://localhost:8000/docs | - |
+| **API Docs (Redoc)** | http://localhost:8000/redoc | - |
 | **GuayaberaCAD** | http://localhost:3001 | DEV0-0000-0000-0000 |
 | **PgAdmin (BD)** | http://localhost:5050 | admin@guayabera-erp.com / admin123 |
 | **Redis** | localhost:6379 | Sin contraseña |
@@ -81,7 +82,110 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ---
 
-## 📚 Endpoints Disponibles (Fase 1)
+## 📦 Módulos del Sistema
+
+Guayabera ERP cuenta con una arquitectura modular que permite adaptarse a las necesidades específicas de tu negocio. A continuación se detallan los módulos disponibles:
+
+### 🧵 Producción
+- MRP (Planificación de Requerimientos de Materiales)
+- Control de calidad
+- Gestión de órdenes de producción
+- Análisis de Pareto
+- Gráficos de control estadístico
+- Gestión de recetas y formulas
+- Seguimiento de lotes y caducidad
+
+### 🛒 Ventas
+- Gestión de clientes
+- Catálogo de productos multivariante
+- Precios por niveles de cliente
+- Pedidos con anticipos
+- Notas de crédito automáticas
+- Cotizaciones y propuestas comerciales
+- CRM integrado
+
+### 📦 Inventario
+- Gestión de almacenes
+- Control de existencias
+- Variaciones de productos
+- Inventario físico
+- Escaneo de códigos QR y barras
+- Alertas de inventario mínimo/máximo
+
+### 👥 Recursos Humanos
+- Gestión de empleados
+- Control de asistencia
+- Nómina
+- Evaluación de desempeño
+- Capacitación y desarrollo
+- Reclutamiento y selección
+
+### 💰 Finanzas
+- Contabilidad general
+- Cuentas por pagar/cobrar
+- Bancos y conciliación
+- Facturación electrónica
+- Presupuestación colaborativa
+- Análisis de desviaciones
+- Tesorería y flujo de efectivo
+
+### 🛍️ Compras
+- Gestión de proveedores
+- Requisiciones y órdenes de compra
+- Análisis de proveedores
+- Recepción de mercancía
+- Devoluciones a proveedores
+
+### 🚚 Logística
+- Gestión de almacenes
+- Control de entradas/salidas
+- Gestión de transporte
+- Control de inventarios en tránsito
+- Manejo de paquetería y guías
+
+### 📊 Business Intelligence
+- Dashboard ejecutivo
+- Reportes personalizados
+- KPIs personalizados
+- Análisis predictivo
+- Análisis de sensibilidad
+- Exportación de datos a múltiples formatos
+
+### 🎨 Diseño Asistido
+- Gestión de diseños
+- Tablas de tallas
+- Hojas de ruta de producción
+- Gestión de muestras y prototipos
+
+---
+
+## ⚙️ Funcionalidades Avanzadas
+
+### 🤖 Inteligencia Artificial
+- Asistente de IA con base de conocimientos
+- Clasificación automática de transacciones
+- Detección de fraudes
+- Análisis predictivo de demanda
+- Optimización de precios
+
+### 🔐 Seguridad
+- Auditoría de seguridad
+- Control de versiones
+- Encriptación de datos
+- Firmas electrónicas
+- Autenticación multifactor
+- Políticas de retención de datos
+
+### 🔗 Integraciones
+- Facturación electrónica (Facturama, Timbrado SAT)
+- Integración bancaria (Santander, BBVA, Banamex)
+- Correos electrónicos (SMTP, SendGrid, Mailgun)
+- Notificaciones en tiempo real (WebSocket, Push)
+- API pública para integración con sistemas externos
+
+---
+
+## 📚 Endpoints Disponibles (Todos los módulos completos)
 
 ### Administración
 ```
@@ -109,27 +213,83 @@ GET    /api/v1/auth/me                     # Info usuario actual
 POST   /api/v1/auth/logout                 # Logout
 ```
 
----
+### Compras
+```
+POST   /api/v1/supply-chain/proveedores    # Crear proveedor
+GET    /api/v1/supply-chain/proveedores    # Listar proveedores
+POST   /api/v1/supply-chain/ordenes-compra # Crear orden de compra
+GET    /api/v1/supply-chain/ordenes-compra # Listar órdenes
+```
 
-## 🗃️ Estructura de Base de Datos
+### Ventas
+```
+POST   /api/v1/sales/clientes              # Crear cliente
+GET    /api/v1/sales/clientes              # Listar clientes
+POST   /api/v1/sales/pedidos               # Crear pedido
+GET    /api/v1/sales/pedidos               # Listar pedidos
+POST   /api/v1/sales/cotizaciones          # Crear cotización
+GET    /api/v1/sales/cotizaciones          # Listar cotizaciones
+```
 
-### Tablas Creadas (Automáticamente al iniciar)
+### Inventario
+```
+POST   /api/v1/inventory/productos         # Crear producto
+GET    /api/v1/inventory/productos         # Listar productos
+POST   /api/v1/inventory/movimientos       # Registrar movimiento
+GET    /api/v1/inventory/movimientos       # Listar movimientos
+```
 
-```sql
--- Núcleo Administrativo
-admin_empresa           # Datos fiscales de la empresa
-admin_sucursal          # Sucursales/almacenes
-admin_configuracion     # Configuración key-value
-admin_moneda           # Monedas (MXN, USD, etc.)
-admin_impuesto         # Impuestos (IVA, ISR, etc.)
+### Producción
+```
+POST   /api/v1/production/ordenes          # Crear orden de producción
+GET    /api/v1/production/ordenes          # Listar órdenes
+POST   /api/v1/production/recetas          # Crear receta de producción
+GET    /api/v1/production/recetas          # Listar recetas
+```
 
--- Seguridad
-seg_usuario            # Usuarios del sistema
-seg_rol                # Roles (Admin, Contador, etc.)
-seg_permiso            # Permisos (ver, crear, editar, eliminar)
-seg_usuario_rol        # Relación usuario-roles
-seg_rol_permiso        # Relación roles-permisos
-seg_auditoria          # Bitáora completa de cambios
+### Contabilidad
+```
+POST   /api/v1/finance/polizas             # Crear póliza contable
+GET    /api/v1/finance/polizas             # Listar pólizas
+POST   /api/v1/finance/cuentas             # Crear cuenta contable
+GET    /api/v1/finance/cuentas             # Listar cuentas
+POST   /api/v1/finance/bancos              # Crear cuenta bancaria
+GET    /api/v1/finance/bancos              # Listar cuentas bancarias
+```
+
+### Facturación Electrónica
+```
+POST   /api/v1/invoice/comprobantes        # Crear comprobante fiscal
+GET    /api/v1/invoice/comprobantes        # Listar comprobantes
+POST   /api/v1/invoice/conceptos           # Crear concepto fiscal
+GET    /api/v1/invoice/conceptos           # Listar conceptos
+POST   /api/v1/invoice/timbrar/{id}        # Timbrar CFDI con Facturama
+POST   /api/v1/invoice/cancelar/{id}       # Cancelar CFDI
+```
+
+### Nómina Electrónica
+```
+POST   /api/v1/payroll/periods             # Crear período de nómina
+GET    /api/v1/payroll/periods             # Listar períodos
+POST   /api/v1/payroll                     # Crear nómina
+GET    /api/v1/payroll                     # Listar nóminas
+POST   /api/v1/payroll/perceptions         # Crear percepción
+GET    /api/v1/payroll/perceptions         # Listar percepciones
+POST   /api/v1/payroll/deductions          # Crear deducción
+GET    /api/v1/payroll/deductions          # Listar deducciones
+POST   /api/v1/payroll/incapacities        # Crear incapacidad
+GET    /api/v1/payroll/incapacities        # Listar incapacidades
+POST   /api/v1/payroll/other-payments      # Crear otro pago
+GET    /api/v1/payroll/other-payments      # Listar otros pagos
+```
+
+### Configuración de Correo
+```
+POST   /api/v1/email-config                # Crear configuración de correo
+GET    /api/v1/email-config                # Obtener configuración
+PUT    /api/v1/email-config/{id}           # Actualizar configuración
+POST   /api/v1/email-config/test           # Probar configuración de correo
+GET    /api/v1/email-config/history        # Historial de envíos
 ```
 
 ---
@@ -220,6 +380,21 @@ ports:
 - **Progreso**: `PROGRESO.md`
 - **Documentación API**: http://localhost:8000/docs
 - **README General**: `README.md`
+
+---
+
+## 🧠 Consejos para el Desarrollo
+
+### Organización del Código
+- El código está organizado por módulos en el directorio `/backend/app/api/v1`
+- Cada módulo tiene su propia carpeta con modelos, esquemas, rutas y servicios
+- La lógica de negocio se encuentra en `/backend/app/core` y `/backend/app/utils`
+
+### Buenas Prácticas
+- Utiliza migraciones Alembic para cualquier cambio en la base de datos
+- Sigue el principio de responsabilidad única en las funciones
+- Documenta tu código con docstrings claros
+- Escribe pruebas unitarias para nuevas funcionalidades
 
 ---
 

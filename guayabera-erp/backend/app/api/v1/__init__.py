@@ -1,0 +1,12 @@
+from .auth import router as auth
+from .users import router as users
+from .products import router as products
+from .inventory import router as inventory
+from .sales import router as sales
+from .purchases import router as purchases
+from .hr import router as hr
+from .production import router as production
+from .finance import router as finance
+from .reports import router as reports
+from .permissions import router as permissions
+from .ai_assistant import router as ai_assistant

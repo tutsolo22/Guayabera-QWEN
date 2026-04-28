@@ -10,11 +10,48 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color, color 0.3s ease;
+  background-color: var(--background-color);
+  color: var(--text-primary);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Light theme (default) */
+:root {
+  --primary-color: #1890ff;
+  --secondary-color: #13c2c2; /* Turquesa */
+  --background-color: #f0f2f5;
+  --surface-color: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #595959;
+  --border-color: #d9d9d9;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --hover-bg: rgba(0, 0, 0, 0.025);
+  --error-color: #ff4d4f;
+  --warning-color: #faad14;
+  --success-color: #52c41a;
+  --info-color: #1890ff;
+}
+
+/* Dark theme */
+[data-theme='dark'] {
+  --primary-color: #177ddc;
+  --secondary-color: #00a896; /* Turquesa oscura */
+  --background-color: #0a0a0a;
+  --surface-color: #141414;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --border-color: #303030;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --error-color: #ff7875;
+  --warning-color: #ffc53d;
+  --success-color: #73d13d;
+  --info-color: #40a9ff;
 }
 
 /* Custom scrollbar */
@@ -24,16 +61,16 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--background-color);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: var(--secondary-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--primary-color);
 }
 
 /* Login page styles */
@@ -42,13 +79,16 @@ code {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
   padding: 20px;
+  background: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
 }
 
 .login-logo {
@@ -57,50 +97,58 @@ code {
 }
 
 .login-logo h1 {
-  color: #1890ff;
+  color: var(--primary-color);
   font-size: 32px;
   margin-bottom: 10px;
 }
 
 .login-logo p {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 /* Dashboard styles */
 .dashboard-card {
-  background: white;
+  background: var(--surface-color) !important;
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
+  transition: all 0.3s;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
 }
 
 .stat-card {
-  background: white;
+  background: var(--surface-color) !important;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
   transition: all 0.3s;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 12px var(--shadow);
   transform: translateY(-2px);
+  background: var(--hover-bg) !important;
 }
 
 .stat-card-icon {
   font-size: 48px;
   margin-bottom: 16px;
+  color: var(--primary-color);
 }
 
 .stat-card-value {
   font-size: 32px;
   font-weight: bold;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .stat-card-label {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -114,6 +162,7 @@ code {
 
 .table-header h2 {
   margin: 0;
+  color: var(--text-primary);
 }
 
 /* Form styles */
@@ -144,3 +193,100 @@ code {
   background: #fff2f0;
   color: #ff4d4f;
 }
+
+/* Ant Design overrides */
+.ant-layout-sider {
+  background: #001529 !important;
+}
+
+.ant-menu-dark {
+  background: #001529 !important;
+}
+
+.ant-layout-header {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-card {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.ant-table {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  background: var(--surface-color) !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--hover-bg) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.ant-input {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.ant-input:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent) !important;
+}
+
+.ant-btn-primary {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.ant-btn-primary:hover, 
+.ant-btn-primary:focus {
+  background: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+}
+
+.ant-modal-content {
+  background: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ant-segmented {
+  background: var(--hover-bg) !important;
+}
+
+.ant-segmented-item-label {
+  color: var(--text-secondary) !important;
+}
+
+.ant-segmented-item-selected .ant-segmented-item-label {
+  color: var(--primary-color) !important;
+}
+
+.ant-picker {
+  background: var(--surface-color) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.ant-picker:hover,
+.ant-picker-focused {
+  border-color: var(--primary-color) !important;
+}
+
+/* Custom theme colors for various components */
+.bg-primary { background-color: var(--primary-color) !important; }
+.bg-secondary { background-color: var(--secondary-color) !important; }
+.bg-surface { background-color: var(--surface-color) !important; }
+.bg-background { background-color: var(--background-color) !important; }
+
+.text-primary { color: var(--primary-color) !important; }
+.text-secondary { color: var(--secondary-color) !important; }
+.text-main { color: var(--text-primary) !important; }
+.text-secondary-text { color: var(--text-secondary) !important; }

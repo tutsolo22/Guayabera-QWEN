@@ -14,11 +14,20 @@ import './index.css';
 // Configurar dayjs en español
 dayjs.locale('es');
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+// Aplicar el tema inicial basado en la preferencia del sistema
+const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const initialTheme = store.getState().ui.theme || (prefersDarkMode ? 'dark' : 'light');
 
-root.render(
+// Actualizar el atributo data-theme en el elemento html
+document.documentElement.setAttribute('data-theme', initialTheme);
+
+// Escuchar cambios en el estado del tema
+store.subscribe(() => {
+  const currentTheme = store.getState().ui.theme;
+  document.documentElement.setAttribute('data-theme', currentTheme);
+});
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <BrowserRouter>
@@ -35,5 +44,5 @@ root.render(
         </ConfigProvider>
       </BrowserRouter>
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
