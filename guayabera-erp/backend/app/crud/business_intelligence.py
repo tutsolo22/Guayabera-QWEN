@@ -1,227 +1,77 @@
-"""
-Business Intelligence CRUD Operations: Reports, data analysis, and dashboards for decision making
-Specialized for textile manufacturing analytics
-"""
-
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from uuid import UUID
+from datetime import date
 
 from app.models.business_intelligence import (
-    InformeBI, VisualizacionInforme, Dashboard, WidgetDashboard,
-    EjecucionInforme, IndicadorKPI, ValorKPIHistorico
+    ReporteBI, WidgetDashboard, DashboardBI, 
+    AnalisisPredictivo, Kpi, HistoricoKpi
 )
 from app.schemas.business_intelligence import (
-    InformeBICreate, InformeBIUpdate,
-    VisualizacionInformeCreate, VisualizacionInformeUpdate,
-    DashboardCreate, DashboardUpdate,
-    WidgetDashboardCreate, WidgetDashboardUpdate,
-    EjecucionInformeCreate, EjecucionInformeUpdate,
-    IndicadorKPICreate, IndicadorKPIUpdate,
-    ValorKPIHistoricoCreate, ValorKPIHistoricoUpdate
+    ReporteBICreate, ReporteBIUpdate, ReporteBIResponse,
+    WidgetDashboardCreate, WidgetDashboardUpdate, WidgetDashboardResponse,
+    DashboardBICreate, DashboardBIUpdate, DashboardBIResponse,
+    AnalisisPredictivoCreate, AnalisisPredictivoUpdate, AnalisisPredictivoResponse,
+    KpiCreate, KpiUpdate, KpiResponse,
+    HistoricoKpiCreate, HistoricoKpiUpdate, HistoricoKpiResponse
 )
 
 
-# ============================================================================
-# REPORT CRUD
-# ============================================================================
-
-def create_informe_bi(db: Session, informe_data: InformeBICreate) -> InformeBI:
-    """Create a new business intelligence report"""
-    # Check if report code already exists
-    existing_informe = db.query(InformeBI).filter(InformeBI.codigo == informe_data.codigo).first()
-    if existing_informe:
-        raise ValueError(f"A report with code {informe_data.codigo} already exists")
-    
-    db_informe = InformeBI(**informe_data.model_dump())
-    db.add(db_informe)
+def create_bi_report(db: Session, report_data: ReporteBICreate) -> ReporteBI:
+    """Create a new BI report"""
+    db_report = ReporteBI(**report_data.model_dump())
+    db.add(db_report)
     db.commit()
-    db.refresh(db_informe)
-    return db_informe
+    db.refresh(db_report)
+    return db_report
 
 
-def get_informe_bi(db: Session, informe_id: UUID) -> Optional[InformeBI]:
-    """Get a business intelligence report by ID"""
-    return db.query(InformeBI).filter(InformeBI.id == informe_id).first()
+def get_bi_report(db: Session, report_id: UUID) -> Optional[ReporteBI]:
+    """Get a BI report by ID"""
+    return db.query(ReporteBI).filter(ReporteBI.id == report_id).first()
 
 
-def get_informe_bi_by_codigo(db: Session, codigo: str) -> Optional[InformeBI]:
-    """Get a business intelligence report by code"""
-    return db.query(InformeBI).filter(InformeBI.codigo == codigo).first()
+def get_bi_reports_by_tipo(db: Session, tipo: str, skip: int = 0, limit: int = 100) -> List[ReporteBI]:
+    """Get BI reports by type"""
+    return db.query(ReporteBI).filter(
+        ReporteBI.tipo == tipo,
+        ReporteBI.activo == True
+    ).order_by(ReporteBI.created_at.desc()).offset(skip).limit(limit).all()
 
 
-def get_informes_bi(
+def get_bi_reports_by_creator(db: Session, creador_id: UUID, skip: int = 0, limit: int = 100) -> List[ReporteBI]:
+    """Get BI reports by creator"""
+    return db.query(ReporteBI).filter(
+        ReporteBI.creador_id == creador_id
+    ).order_by(ReporteBI.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def update_bi_report(
     db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
-    tipo_reporte: Optional[str] = None,
-    estado: Optional[str] = None,
-    creador_id: Optional[UUID] = None,
-    departamento_id: Optional[UUID] = None
-) -> List[InformeBI]:
-    """Get list of reports, optionally filtered"""
-    query = db.query(InformeBI)
-    
-    if tipo_reporte:
-        query = query.filter(InformeBI.tipo_reporte == tipo_reporte)
-    if estado:
-        query = query.filter(InformeBI.estado == estado)
-    if creador_id:
-        query = query.filter(InformeBI.creador_id == creador_id)
-    if departamento_id:
-        query = query.filter(InformeBI.departamento_id == departamento_id)
-    
-    return query.offset(skip).limit(limit).all()
-
-
-def update_informe_bi(db: Session, informe_id: UUID, informe_data: InformeBIUpdate) -> Optional[InformeBI]:
-    """Update a business intelligence report"""
-    db_informe = get_informe_bi(db, informe_id)
-    if db_informe:
-        update_data = informe_data.model_dump(exclude_unset=True)
+    report_id: UUID, 
+    report_data: ReporteBIUpdate
+) -> Optional[ReporteBI]:
+    """Update a BI report"""
+    db_report = get_bi_report(db, report_id)
+    if db_report:
+        update_data = report_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_informe, field, value)
+            setattr(db_report, field, value)
         db.commit()
-        db.refresh(db_informe)
-    return db_informe
+        db.refresh(db_report)
+    return db_report
 
 
-def delete_informe_bi(db: Session, informe_id: UUID) -> bool:
-    """Soft delete a business intelligence report"""
-    db_informe = get_informe_bi(db, informe_id)
-    if db_informe:
-        db_informe.deleted_at = func.now()
+def delete_bi_report(db: Session, report_id: UUID) -> bool:
+    """Delete a BI report (soft delete by deactivation)"""
+    db_report = get_bi_report(db, report_id)
+    if db_report:
+        db_report.activo = False
         db.commit()
         return True
     return False
 
-
-# ============================================================================
-# REPORT VISUALIZATION CRUD
-# ============================================================================
-
-def create_visualizacion_informe(db: Session, visualizacion_data: VisualizacionInformeCreate) -> VisualizacionInforme:
-    """Create a new report visualization"""
-    db_visualizacion = VisualizacionInforme(**visualizacion_data.model_dump())
-    db.add(db_visualizacion)
-    db.commit()
-    db.refresh(db_visualizacion)
-    return db_visualizacion
-
-
-def get_visualizacion_informe(db: Session, visualizacion_id: UUID) -> Optional[VisualizacionInforme]:
-    """Get a report visualization by ID"""
-    return db.query(VisualizacionInforme).filter(VisualizacionInforme.id == visualizacion_id).first()
-
-
-def get_visualizaciones_by_informe(db: Session, informe_id: UUID) -> List[VisualizacionInforme]:
-    """Get all visualizations for a specific report"""
-    return db.query(VisualizacionInforme).filter(
-        VisualizacionInforme.informe_id == informe_id
-    ).all()
-
-
-def update_visualizacion_informe(
-    db: Session, 
-    visualizacion_id: UUID, 
-    visualizacion_data: VisualizacionInformeUpdate
-) -> Optional[VisualizacionInforme]:
-    """Update a report visualization"""
-    db_visualizacion = get_visualizacion_informe(db, visualizacion_id)
-    if db_visualizacion:
-        update_data = visualizacion_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_visualizacion, field, value)
-        db.commit()
-        db.refresh(db_visualizacion)
-    return db_visualizacion
-
-
-def delete_visualizacion_informe(db: Session, visualizacion_id: UUID) -> bool:
-    """Delete a report visualization"""
-    db_visualizacion = get_visualizacion_informe(db, visualizacion_id)
-    if db_visualizacion:
-        db.delete(db_visualizacion)
-        db.commit()
-        return True
-    return False
-
-
-# ============================================================================
-# DASHBOARD CRUD
-# ============================================================================
-
-def create_dashboard(db: Session, dashboard_data: DashboardCreate) -> Dashboard:
-    """Create a new dashboard"""
-    # Check if dashboard code already exists
-    existing_dashboard = db.query(Dashboard).filter(Dashboard.codigo == dashboard_data.codigo).first()
-    if existing_dashboard:
-        raise ValueError(f"A dashboard with code {dashboard_data.codigo} already exists")
-    
-    db_dashboard = Dashboard(**dashboard_data.model_dump())
-    db.add(db_dashboard)
-    db.commit()
-    db.refresh(db_dashboard)
-    return db_dashboard
-
-
-def get_dashboard(db: Session, dashboard_id: UUID) -> Optional[Dashboard]:
-    """Get a dashboard by ID"""
-    return db.query(Dashboard).filter(Dashboard.id == dashboard_id).first()
-
-
-def get_dashboard_by_codigo(db: Session, codigo: str) -> Optional[Dashboard]:
-    """Get a dashboard by code"""
-    return db.query(Dashboard).filter(Dashboard.codigo == codigo).first()
-
-
-def get_dashboards(
-    db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
-    creador_id: Optional[UUID] = None,
-    departamento_id: Optional[UUID] = None,
-    activo: Optional[bool] = None
-) -> List[Dashboard]:
-    """Get list of dashboards, optionally filtered"""
-    query = db.query(Dashboard)
-    
-    if creador_id:
-        query = query.filter(Dashboard.creador_id == creador_id)
-    if departamento_id:
-        query = query.filter(Dashboard.departamento_id == departamento_id)
-    if activo is not None:
-        query = query.filter(Dashboard.activo == activo)
-    
-    return query.offset(skip).limit(limit).all()
-
-
-def update_dashboard(db: Session, dashboard_id: UUID, dashboard_data: DashboardUpdate) -> Optional[Dashboard]:
-    """Update a dashboard"""
-    db_dashboard = get_dashboard(db, dashboard_id)
-    if db_dashboard:
-        update_data = dashboard_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_dashboard, field, value)
-        db.commit()
-        db.refresh(db_dashboard)
-    return db_dashboard
-
-
-def delete_dashboard(db: Session, dashboard_id: UUID) -> bool:
-    """Soft delete a dashboard"""
-    db_dashboard = get_dashboard(db, dashboard_id)
-    if db_dashboard:
-        db_dashboard.deleted_at = func.now()
-        db.commit()
-        return True
-    return False
-
-
-# ============================================================================
-# DASHBOARD WIDGET CRUD
-# ============================================================================
 
 def create_widget_dashboard(db: Session, widget_data: WidgetDashboardCreate) -> WidgetDashboard:
     """Create a new dashboard widget"""
@@ -237,11 +87,11 @@ def get_widget_dashboard(db: Session, widget_id: UUID) -> Optional[WidgetDashboa
     return db.query(WidgetDashboard).filter(WidgetDashboard.id == widget_id).first()
 
 
-def get_widgets_by_dashboard(db: Session, dashboard_id: UUID) -> List[WidgetDashboard]:
-    """Get all widgets for a specific dashboard"""
+def get_widgets_by_dashboard(db: Session, dashboard_id: UUID, skip: int = 0, limit: int = 100) -> List[WidgetDashboard]:
+    """Get widgets by dashboard ID"""
     return db.query(WidgetDashboard).filter(
         WidgetDashboard.dashboard_id == dashboard_id
-    ).all()
+    ).order_by(WidgetDashboard.posicion_y, WidgetDashboard.posicion_x).offset(skip).limit(limit).all()
 
 
 def update_widget_dashboard(
@@ -270,215 +120,197 @@ def delete_widget_dashboard(db: Session, widget_id: UUID) -> bool:
     return False
 
 
-# ============================================================================
-# REPORT EXECUTION CRUD
-# ============================================================================
-
-def create_ejecucion_informe(db: Session, ejecucion_data: EjecucionInformeCreate) -> EjecucionInforme:
-    """Create a new report execution record"""
-    db_ejecucion = EjecucionInforme(**ejecucion_data.model_dump())
-    db.add(db_ejecucion)
+def create_dashboard_bi(db: Session, dashboard_data: DashboardBICreate) -> DashboardBI:
+    """Create a new BI dashboard"""
+    db_dashboard = DashboardBI(**dashboard_data.model_dump())
+    db.add(db_dashboard)
     db.commit()
-    db.refresh(db_ejecucion)
-    
-    # Update the report with the execution timestamp
-    informe = get_informe_bi(db, ejecucion_data.informe_id)
-    if informe:
-        informe.fecha_ultima_ejecucion = func.now()
-        # Calculate next execution based on frequency
-        if informe.frecuencia_actualizacion == "diaria":
-            informe.fecha_proxima_ejecucion = func.now() + func.interval('1 day')
-        elif informe.frecuencia_actualizacion == "semanal":
-            informe.fecha_proxima_ejecucion = func.now() + func.interval('1 week')
-        elif informe.frecuencia_actualizacion == "mensual":
-            informe.fecha_proxima_ejecucion = func.now() + func.interval('1 month')
-        elif informe.frecuencia_actualizacion == "trimestral":
-            informe.fecha_proxima_ejecucion = func.now() + func.interval('3 months')
-        elif informe.frecuencia_actualizacion == "anual":
-            informe.fecha_proxima_ejecucion = func.now() + func.interval('1 year')
-        db.commit()
-    
-    return db_ejecucion
+    db.refresh(db_dashboard)
+    return db_dashboard
 
 
-def get_ejecucion_informe(db: Session, ejecucion_id: UUID) -> Optional[EjecucionInforme]:
-    """Get a report execution record by ID"""
-    return db.query(EjecucionInforme).filter(EjecucionInforme.id == ejecucion_id).first()
+def get_dashboard_bi(db: Session, dashboard_id: UUID) -> Optional[DashboardBI]:
+    """Get a BI dashboard by ID"""
+    return db.query(DashboardBI).filter(DashboardBI.id == dashboard_id).first()
 
 
-def get_ejecuciones_by_informe(
+def get_dashboards_by_owner(db: Session, owner_id: UUID, skip: int = 0, limit: int = 100) -> List[DashboardBI]:
+    """Get dashboards by owner ID"""
+    return db.query(DashboardBI).filter(
+        DashboardBI.propietario_id == owner_id
+    ).order_by(DashboardBI.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def get_public_dashboards(db: Session, skip: int = 0, limit: int = 100) -> List[DashboardBI]:
+    """Get public dashboards"""
+    return db.query(DashboardBI).filter(
+        DashboardBI.es_publico == True
+    ).order_by(DashboardBI.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def update_dashboard_bi(
     db: Session, 
-    informe_id: UUID, 
-    skip: int = 0, 
-    limit: int = 100
-) -> List[EjecucionInforme]:
-    """Get all executions for a specific report"""
-    return db.query(EjecucionInforme).filter(
-        EjecucionInforme.informe_id == informe_id
-    ).order_by(EjecucionInforme.fecha_ejecucion.desc()).offset(skip).limit(limit).all()
-
-
-def update_ejecucion_informe(
-    db: Session, 
-    ejecucion_id: UUID, 
-    ejecucion_data: EjecucionInformeUpdate
-) -> Optional[EjecucionInforme]:
-    """Update a report execution record"""
-    db_ejecucion = get_ejecucion_informe(db, ejecucion_id)
-    if db_ejecucion:
-        update_data = ejecucion_data.model_dump(exclude_unset=True)
+    dashboard_id: UUID, 
+    dashboard_data: DashboardBIUpdate
+) -> Optional[DashboardBI]:
+    """Update a BI dashboard"""
+    db_dashboard = get_dashboard_bi(db, dashboard_id)
+    if db_dashboard:
+        update_data = dashboard_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_ejecucion, field, value)
+            setattr(db_dashboard, field, value)
         db.commit()
-        db.refresh(db_ejecucion)
-    return db_ejecucion
+        db.refresh(db_dashboard)
+    return db_dashboard
 
 
-def delete_ejecucion_informe(db: Session, ejecucion_id: UUID) -> bool:
-    """Delete a report execution record"""
-    db_ejecucion = get_ejecucion_informe(db, ejecucion_id)
-    if db_ejecucion:
-        db.delete(db_ejecucion)
+def delete_dashboard_bi(db: Session, dashboard_id: UUID) -> bool:
+    """Delete a BI dashboard"""
+    db_dashboard = get_dashboard_bi(db, dashboard_id)
+    if db_dashboard:
+        db.delete(db_dashboard)
         db.commit()
         return True
     return False
 
 
-# ============================================================================
-# KPI INDICATOR CRUD
-# ============================================================================
-
-def create_indicador_kpi(db: Session, indicador_data: IndicadorKPICreate) -> IndicadorKPI:
-    """Create a new KPI indicator"""
-    # Check if KPI code already exists
-    existing_indicador = db.query(IndicadorKPI).filter(IndicadorKPI.codigo == indicador_data.codigo).first()
-    if existing_indicador:
-        raise ValueError(f"A KPI indicator with code {indicador_data.codigo} already exists")
-    
-    db_indicador = IndicadorKPI(**indicador_data.model_dump())
-    db.add(db_indicador)
+def create_analisis_predictivo(db: Session, analisis_data: AnalisisPredictivoCreate) -> AnalisisPredictivo:
+    """Create a new predictive analysis"""
+    db_analisis = AnalisisPredictivo(**analisis_data.model_dump())
+    db.add(db_analisis)
     db.commit()
-    db.refresh(db_indicador)
-    return db_indicador
+    db.refresh(db_analisis)
+    return db_analisis
 
 
-def get_indicador_kpi(db: Session, indicador_id: UUID) -> Optional[IndicadorKPI]:
-    """Get a KPI indicator by ID"""
-    return db.query(IndicadorKPI).filter(IndicadorKPI.id == indicador_id).first()
+def get_analisis_predictivo(db: Session, analisis_id: UUID) -> Optional[AnalisisPredictivo]:
+    """Get a predictive analysis by ID"""
+    return db.query(AnalisisPredictivo).filter(AnalisisPredictivo.id == analisis_id).first()
 
 
-def get_indicador_kpi_by_codigo(db: Session, codigo: str) -> Optional[IndicadorKPI]:
-    """Get a KPI indicator by code"""
-    return db.query(IndicadorKPI).filter(IndicadorKPI.codigo == codigo).first()
+def get_analisis_predictivo_by_tipo(db: Session, tipo_modelo: str, skip: int = 0, limit: int = 100) -> List[AnalisisPredictivo]:
+    """Get predictive analyses by model type"""
+    return db.query(AnalisisPredictivo).filter(
+        AnalisisPredictivo.tipo_modelo == tipo_modelo,
+        AnalisisPredictivo.activo == True
+    ).order_by(AnalisisPredictivo.created_at.desc()).offset(skip).limit(limit).all()
 
 
-def get_indicadores_kpi(
+def update_analisis_predictivo(
     db: Session, 
-    skip: int = 0, 
-    limit: int = 100, 
-    tipo_indicador: Optional[str] = None,
-    activo: Optional[bool] = None,
-    departamento_id: Optional[UUID] = None
-) -> List[IndicadorKPI]:
-    """Get list of KPI indicators, optionally filtered"""
-    query = db.query(IndicadorKPI)
-    
-    if tipo_indicador:
-        query = query.filter(IndicadorKPI.tipo_indicador == tipo_indicador)
-    if activo is not None:
-        query = query.filter(IndicadorKPI.activo == activo)
-    if departamento_id:
-        query = query.filter(IndicadorKPI.departamento_id == departamento_id)
-    
-    return query.offset(skip).limit(limit).all()
-
-
-def update_indicador_kpi(
-    db: Session, 
-    indicador_id: UUID, 
-    indicador_data: IndicadorKPIUpdate
-) -> Optional[IndicadorKPI]:
-    """Update a KPI indicator"""
-    db_indicador = get_indicador_kpi(db, indicador_id)
-    if db_indicador:
-        update_data = indicador_data.model_dump(exclude_unset=True)
+    analisis_id: UUID, 
+    analisis_data: AnalisisPredictivoUpdate
+) -> Optional[AnalisisPredictivo]:
+    """Update a predictive analysis"""
+    db_analisis = get_analisis_predictivo(db, analisis_id)
+    if db_analisis:
+        update_data = analisis_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_indicador, field, value)
+            setattr(db_analisis, field, value)
         db.commit()
-        db.refresh(db_indicador)
-    return db_indicador
+        db.refresh(db_analisis)
+    return db_analisis
 
 
-def delete_indicador_kpi(db: Session, indicador_id: UUID) -> bool:
-    """Soft delete a KPI indicator"""
-    db_indicador = get_indicador_kpi(db, indicador_id)
-    if db_indicador:
-        db_indicador.deleted_at = func.now()
+def delete_analisis_predictivo(db: Session, analisis_id: UUID) -> bool:
+    """Delete a predictive analysis (soft delete by deactivation)"""
+    db_analisis = get_analisis_predictivo(db, analisis_id)
+    if db_analisis:
+        db_analisis.activo = False
         db.commit()
         return True
     return False
 
 
-# ============================================================================
-# HISTORICAL KPI VALUE CRUD
-# ============================================================================
-
-def create_valor_kpi_historico(db: Session, valor_data: ValorKPIHistoricoCreate) -> ValorKPIHistorico:
-    """Create a new historical KPI value"""
-    db_valor = ValorKPIHistorico(**valor_data.model_dump())
-    db.add(db_valor)
+def create_kpi(db: Session, kpi_data: KpiCreate) -> Kpi:
+    """Create a new KPI"""
+    db_kpi = Kpi(**kpi_data.model_dump())
+    db.add(db_kpi)
     db.commit()
-    db.refresh(db_valor)
-    return db_valor
+    db.refresh(db_kpi)
+    return db_kpi
 
 
-def get_valor_kpi_historico(db: Session, valor_id: UUID) -> Optional[ValorKPIHistorico]:
-    """Get a historical KPI value by ID"""
-    return db.query(ValorKPIHistorico).filter(ValorKPIHistorico.id == valor_id).first()
+def get_kpi(db: Session, kpi_id: UUID) -> Optional[Kpi]:
+    """Get a KPI by ID"""
+    return db.query(Kpi).filter(Kpi.id == kpi_id).first()
 
 
-def get_valores_kpi_historico(
+def get_kpis_by_department(db: Session, department_id: UUID, skip: int = 0, limit: int = 100) -> List[Kpi]:
+    """Get KPIs by department ID"""
+    return db.query(Kpi).filter(
+        Kpi.departamento_id == department_id,
+        Kpi.activo == True
+    ).order_by(Kpi.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def get_active_kpis(db: Session, skip: int = 0, limit: int = 100) -> List[Kpi]:
+    """Get all active KPIs"""
+    return db.query(Kpi).filter(
+        Kpi.activo == True
+    ).order_by(Kpi.created_at.desc()).offset(skip).limit(limit).all()
+
+
+def update_kpi(
     db: Session, 
-    indicador_id: UUID, 
-    fecha_inicio: Optional[date] = None,
-    fecha_fin: Optional[date] = None,
-    skip: int = 0, 
-    limit: int = 100
-) -> List[ValorKPIHistorico]:
-    """Get historical KPI values for a specific indicator, optionally filtered by date range"""
-    query = db.query(ValorKPIHistorico).filter(
-        ValorKPIHistorico.indicador_id == indicador_id
-    ).order_by(ValorKPIHistorico.fecha_registro.desc())
-    
-    if fecha_inicio:
-        query = query.filter(ValorKPIHistorico.fecha_registro >= fecha_inicio)
-    if fecha_fin:
-        query = query.filter(ValorKPIHistorico.fecha_registro <= fecha_fin)
-    
-    return query.offset(skip).limit(limit).all()
-
-
-def update_valor_kpi_historico(
-    db: Session, 
-    valor_id: UUID, 
-    valor_data: ValorKPIHistoricoUpdate
-) -> Optional[ValorKPIHistorico]:
-    """Update a historical KPI value"""
-    db_valor = get_valor_kpi_historico(db, valor_id)
-    if db_valor:
-        update_data = valor_data.model_dump(exclude_unset=True)
+    kpi_id: UUID, 
+    kpi_data: KpiUpdate
+) -> Optional[Kpi]:
+    """Update a KPI"""
+    db_kpi = get_kpi(db, kpi_id)
+    if db_kpi:
+        update_data = kpi_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_valor, field, value)
+            setattr(db_kpi, field, value)
         db.commit()
-        db.refresh(db_valor)
-    return db_valor
+        db.refresh(db_kpi)
+    return db_kpi
 
 
-def delete_valor_kpi_historico(db: Session, valor_id: UUID) -> bool:
-    """Delete a historical KPI value"""
-    db_valor = get_valor_kpi_historico(db, valor_id)
-    if db_valor:
-        db.delete(db_valor)
+def delete_kpi(db: Session, kpi_id: UUID) -> bool:
+    """Delete a KPI (soft delete by deactivation)"""
+    db_kpi = get_kpi(db, kpi_id)
+    if db_kpi:
+        db_kpi.activo = False
         db.commit()
         return True
     return False
+
+
+def create_historico_kpi(db: Session, historico_data: HistoricoKpiCreate) -> HistoricoKpi:
+    """Create a new KPI history record"""
+    db_historico = HistoricoKpi(**historico_data.model_dump())
+    db.add(db_historico)
+    db.commit()
+    db.refresh(db_historico)
+    return db_historico
+
+
+def get_historico_kpi(db: Session, historico_id: UUID) -> Optional[HistoricoKpi]:
+    """Get a KPI history record by ID"""
+    return db.query(HistoricoKpi).filter(HistoricoKpi.id == historico_id).first()
+
+
+def get_historico_kpi_by_kpi(db: Session, kpi_id: UUID, start_date: date, end_date: date) -> List[HistoricoKpi]:
+    """Get KPI history records by KPI ID and date range"""
+    return db.query(HistoricoKpi).filter(
+        HistoricoKpi.kpi_id == kpi_id,
+        HistoricoKpi.fecha_registro >= start_date,
+        HistoricoKpi.fecha_registro <= end_date
+    ).order_by(HistoricoKpi.fecha_registro.asc()).all()
+
+
+def update_historico_kpi(
+    db: Session, 
+    historico_id: UUID, 
+    historico_data: HistoricoKpiUpdate
+) -> Optional[HistoricoKpi]:
+    """Update a KPI history record"""
+    db_historico = get_historico_kpi(db, historico_id)
+    if db_historico:
+        update_data = historico_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_historico, field, value)
+        db.commit()
+        db.refresh(db_historico)
+    return db_historico

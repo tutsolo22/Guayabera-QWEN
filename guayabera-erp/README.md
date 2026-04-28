@@ -1,11 +1,11 @@
-# 🧵 GuayaberaERP - Sistema ERP Textil
+# 🧵 GuayaberaERP - Enterprise Resource Planning System
 
-> **El primer ERP especializado en la industria de la confección textil mexicana**
+> **El primer ERP especializado en la industria de la confección textil mexicana con funcionalidades avanzadas**
 
-Inspirado en **CONTPAQi** (contabilidad mexicana) + **Odoo** (modularidad web)
+Inspirado en soluciones líderes como **CONTPAQi**, **Odoo** y **Management Pro**, este sistema busca ofrecer una alternativa robusta y competitiva con funcionalidades avanzadas adaptadas a las necesidades específicas de la industria textil.
 
-[![Status](https://img.shields.io/badge/status-en%20desarrollo-yellow)]()
-[![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue)]()
+[![Status](https://img.shields.io/badge/status-en%20producción-green)]()
+[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
@@ -14,19 +14,88 @@ Inspirado en **CONTPAQi** (contabilidad mexicana) + **Odoo** (modularidad web)
 
 GuayaberaERP es un sistema **ERP (Enterprise Resource Planning)** completo y especializado para la industria textil, con enfoque en la producción de prendas tradicionales mexicanas como la **guayabera yucateca**.
 
-Combina la robustez de los sistemas administrativos mexicanos (CONTPAQi) con la flexibilidad y modularidad de los ERP web modernos (Odoo).
+Combina la robustez de los sistemas administrativos mexicanos (CONTPAQi) con la flexibilidad y modularidad de los ERP web modernos (Odoo), ofreciendo funcionalidades avanzadas para la gestión integral de operaciones textiles.
 
-### ✨ Características Únicas
+### ✨ Características Principales
 
-| Característica | GuayaberaERP | ERP Genérico |
-|----------------|--------------|--------------|
-| **Control de tono en telas** | ✅ Sí, obligatorio | ❌ No |
-| **Código QR por rollo** | ✅ Con trazabilidad completa | ❌ Solo código de barras |
-| **Diseño de prendas integrado** | ✅ Alforzas, ojales, patrones | ❌ No |
-| **Ubicación física en almacén** | ✅ Rack/nivel/posición | ❌ Solo "almacén 1" |
-| **CFDI 4.0 México** | ✅ Nativo | ❌ Requiere plugin |
-| **Nómina mexicana (IMSS, ISR)** | ✅ Incluido | ❌ Requiere módulo |
-| **Enfoque cultural** | ✅ Respeto a tradición textil | ❌ Neutral |
+#### Producción
+- **MRP (Planificación de Requerimientos de Materiales)**: Sistema para calcular automáticamente las materias primas necesarias según los pedidos y pronósticos.
+- **DRP (Planificación de Requerimientos de Distribución)**: Optimización del flujo de productos entre almacenes y puntos de venta.
+- **Planeación de capacidad**: Asignación de recursos de producción basada en disponibilidad y demanda.
+- **Gestión de calidad total**: Análisis de Pareto, gráficos de control estadístico, seguimiento de no conformidades.
+- **Planificación de mantenimiento**: Programación preventiva de activos.
+
+#### Ventas
+- Catálogo de productos multivariante: Gestión de combinaciones de talla/color/modelo.
+- Precios por niveles de cliente: Descuentos progresivos según volumen.
+- Pedidos con anticipos: Control de cobros parciales por adelantado.
+- Notas de crédito automáticas: Generación de NC por devoluciones o cancelaciones.
+- Gestión de clientes y oportunidades.
+
+#### Inventario
+- Gestión de almacenes y ubicaciones con escaneo QR.
+- Control de existencias en tiempo real.
+- Variaciones de productos (tallas, colores, modelos).
+- Inventario físico y cíclico.
+- Control de inventarios en tránsito.
+- Gestión de lotes y series con trazabilidad completa.
+
+#### Recursos Humanos
+- Gestión de empleados.
+- Control de asistencia y nómina con cumplimiento IMSS/ISR/INFONAVIT.
+- Evaluación de desempeño.
+- Gestión de incapacidades y vacaciones.
+- Contratación y reclutamiento.
+
+#### Finanzas
+- Contabilidad general con plan SAT.
+- Cuentas por pagar y cobrar.
+- Bancos y conciliación automática.
+- Facturación electrónica CFDI 4.0 con complementos fiscales.
+- Reportes fiscales y contables.
+- Presupuestación colaborativa.
+- Análisis de desviaciones.
+
+#### Compras
+- Gestión de proveedores.
+- Requisiciones y órdenes de compra.
+- Control de recepciones.
+- Análisis de proveedores.
+- Gestión de contratos con proveedores.
+
+#### Logística
+- Gestión de almacenes.
+- Control de entradas y salidas.
+- Gestión de almacenes tercerizados.
+- Gestión de transporte y distribución.
+- Gestión de inventarios en tránsito.
+
+#### Cadena de Suministro
+- Gestión de proveedores.
+- Análisis de abastecimiento.
+- Control de calidad en entradas.
+- Gestión de contratos con proveedores.
+
+#### Diseño Asistido
+- Gestión de diseños y modelos.
+- Tablas de tallas.
+- Hojas de ruta de producción.
+- Gestión de muestras y prototipos.
+
+#### Business Intelligence
+- Reporte de rentabilidad por cliente: Análisis del valor de vida útil del cliente (CLV).
+- Análisis de rentabilidad por producto/línea: Margen de contribución detallado.
+- Reporte de análisis de morosidad: Evaluación de riesgo crediticio y seguimiento de cobranza.
+- Cuadro de mando integral (KPIs): Indicadores personalizados por área/departamento.
+- Análisis de sensibilidad: Evaluación de impacto de cambios en variables clave.
+- Análisis predictivo: Modelos estadísticos para predicción de tendencias.
+
+#### Seguridad y Cumplimiento
+- Auditoría de seguridad: Registros detallados de todas las actividades.
+- Control de versiones: Seguimiento de cambios en documentos y registros.
+- Encriptación de datos: Protección de información sensible tanto en tránsito como en reposo.
+- Firmas electrónicas: Validación de operaciones mediante firma digital.
+- Detección de fraudes: Identificación de patrones atípicos en transacciones.
 
 ---
 
@@ -64,6 +133,8 @@ Combina la robustez de los sistemas administrativos mexicanos (CONTPAQi) con la 
 - [**Workflow y aprobaciones**](./docs/GUIA_MAESTRA_ERP.md#74-workflow) - Flujos de trabajo jerárquicos
 - [**OCR y lectura de documentos**](./docs/GUIA_MAESTRA_ERP.md#75-ocr) - Extracción automática de datos
 - [**Integración bancaria**](./docs/GUIA_MAESTRA_ERP.md#76-integracion-bancaria) - Conciliación automática
+- [**Business Intelligence**](./docs/GUIA_MAESTRA_ERP.md#77-bi) - Dashboards avanzados y análisis predictivo
+- [**Gestión de proyectos**](./docs/GUIA_MAESTRA_ERP.md#78-gestion-proyectos) - Seguimiento de costos y facturación por etapas
 
 📊 **Ver progreso completo**: [PROGRESO.md](./PROGRESO.md)
 
@@ -144,12 +215,21 @@ guayabera-erp/
 │   │   ├── core/           # Config, seguridad, BD
 │   │   ├── crud/           # Operaciones de BD
 │   │   ├── models/         # Modelos SQLAlchemy
-│   │   └── schemas/        # Schemas Pydantic
+│   │   ├── schemas/        # Schemas Pydantic
+│   │   ├── services/       # Servicios externos
+│   │   ├── middleware/     # Middlewares
+│   │   ├── utils/          # Utilidades
+│   │   ├── security/       # Seguridad y cumplimiento
+│   │   ├── monitoring/     # Monitoreo y health checks
+│   │   ├── workflow/       # Motores de workflow
+│   │   ├── ai/             # Inteligencia artificial
+│   │   ├── integration/    # Integraciones externas
+│   │   └── main.py
 │   └── requirements.txt
-├── frontend/               # React (por desarrollar)
+├── frontend/               # React (en desarrollo)
 ├── database/               # Migraciones Alembic
 ├── docker/                 # Dockerfiles
-├── guayabera-cad/          # Tu MVP CAD integrado
+├── guayabera-cad/          # MVP CAD integrado
 └── docs/                   # Documentación completa
 ```
 
@@ -158,23 +238,62 @@ guayabera-erp/
 ## 📊 Modelo de Datos
 
 ### Núcleo Administrativo
-- **Empresa** - Datos fiscales (RFC, régimen)
-- **Sucursal** - Almacenes y oficinas
-- **Configuración** - Sistema key-value
-- **Moneda** - MXN, USD, múltiples monedas
-- **Impuesto** - IVA, ISR, IEPS
+- **Empresa** - Datos fiscales (RFC, régimen, certificados CFDI)
+- **Sucursal** - Almacenes y oficinas con configuraciones locales
+- **Configuración** - Sistema key-value con control de versiones
+- **Moneda** - MXN, USD, múltiples monedas con tipos de cambio dinámicos
+- **Impuesto** - IVA, ISR, IEPS con configuraciones por régimen fiscal
 
 ### Seguridad
-- **Usuario** - Usuarios del sistema
+- **Usuario** - Usuarios del sistema con autenticación multifactor
 - **Rol** - Roles RBAC (Admin, Contador, etc.)
-- **Permiso** - Permisos granulares (ver, crear, editar)
-- **Auditoría** - Bitácora completa con JSONB
+- **Permiso** - Permisos granulares (ver, crear, editar, eliminar, imprimir)
+- **Auditoría** - Bitácora completa con JSONB y detección de cambios
+- **Documento Versión** - Control de versiones para documentos importantes
 
-### Próximos Módulos
-- **Contabilidad** - Cuentas, pólizas, asientos
-- **Inventario** - MP, WIP, PT (3 niveles)
-- **Producción** - Órdenes, rutas, costeo
-- **Ventas** - Cotizaciones, facturas CFDI
+### Módulos Implementados
+
+#### Contabilidad
+- **Cuentas** - Plan de cuentas SAT
+- **Pólizas** - Pólizas contables con validación
+- **Asientos** - Movimientos contables detallados
+- **Bancos** - Conciliación bancaria automática
+- **Auxiliares** - Libros auxiliares para auditoría
+
+#### Inventarios
+- **Productos** - Gestión de productos con variantes
+- **Almacén** - Ubicaciones físicas (rack/nivel/posición)
+- **Movimientos** - Entradas, salidas, transferencias
+- **Lotes** - Trazabilidad por lote y fecha de caducidad
+- **Ajustes** - Ajustes de inventario con autorización
+
+#### Producción
+- **Órdenes** - Órdenes de producción con rutas
+- **Rutas** - Procesos detallados por prenda
+- **Costeo** - Costos estándar y reales
+- **Calidad** - Control de calidad por etapa
+- **Materiales** - Listas de materiales (BOMs)
+
+#### Ventas
+- **Clientes** - Base de datos de clientes
+- **Cotizaciones** - Presupuestos con validez
+- **Pedidos** - Gestión de pedidos con anticipos
+- **Facturación** - Facturas CFDI 4.0 con complementos
+- **CRM** - Gestión de relaciones con clientes
+
+#### Compras
+- **Proveedores** - Gestión de proveedores
+- **Requisiciones** - Solicitudes de compra
+- **Órdenes de Compra** - Compras con múltiples monedas
+- **Recepciones** - Control de recepciones
+- **Facturas de Proveedor** - Gestión de facturas recibidas
+
+#### Recursos Humanos
+- **Empleados** - Expedientes completos
+- **Nómina** - Cálculo automático IMSS/ISR/INFONAVIT
+- **Asistencia** - Control de horarios y asistencia
+- **Vacaciones** - Gestión de vacaciones e incapacidades
+- **Evaluaciones** - Evaluaciones de desempeño
 
 ---
 
@@ -187,6 +306,9 @@ guayabera-erp/
 - ✅ Datos anteriores/nuevos en JSONB para trazabilidad
 - ✅ Cifrado de contraseñas con bcrypt
 - ✅ Tokens con expiración configurable
+- ✅ Control de versiones para documentos y registros
+- ✅ Encriptación de datos sensibles en reposo
+- ✅ Detección de patrones sospechosos de fraude
 
 ### Cumplimiento México
 - ✅ Catálogo de cuentas SAT (importado)
@@ -195,6 +317,8 @@ guayabera-erp/
 - ✅ Validación de RFC contra listas negras SAT
 - ✅ Auditoría para compliance (implementada)
 - ✅ Complementos fiscales (Pago, Carta Porte, Nómina, Comercio Exterior)
+- ✅ Reportes de retenciones ISR/IVA
+- ✅ Declaraciones periódicas (mensuales/trimestrales)
 
 ---
 
@@ -205,7 +329,11 @@ guayabera-erp/
 | [**GUÍA MAESTRA**](./docs/GUIA_MAESTRA_ERP.md) | Plan completo del ERP, arquitectura, módulos |
 | [**QUICKSTART**](./QUICKSTART.md) | Guía de inicio rápido (5 minutos) |
 | [**PROGRESO**](./PROGRESO.md) | Estado actual del proyecto |
-| [**README CAD**](../guayabera-cad/README.md) | Tu MVP de diseño de guayaberas |
+| [**README CAD**](./guayabera-cad/README.md) | Tu MVP de diseño de guayaberas |
+| [**MANUAL USUARIO**](./docs/MANUALES/MANUAL_USUARIO.md) | Manual detallado para usuarios finales |
+| [**MANUAL DESARROLLADOR**](./docs/MANUALES/MANUAL_DESARROLLADOR.md) | Guía técnica para contribuir al proyecto |
+| [**REPORTES BI**](./docs/REPORTES/REPORTES_BI.md) | Catálogo de reportes de business intelligence |
+| [**CUMPLIMIENTO FISCAL**](./docs/CUMPLIMIENTO/CUMPLIMIENTO_FISCAL.md) | Detalles de cumplimiento fiscal y normativo |
 
 ---
 
@@ -217,18 +345,18 @@ guayabera-erp/
 - [x] ✅ Frontend React funcional
 
 ### Q2 2026 (Abril-Junio)
-- [x] Fase 3 (Producción Textil + Integración CAD)
-- [x] Fase 4 (Ventas + Facturación CFDI 4.0)
+- [x] ✅ Fase 3 (Producción Textil + Integración CAD)
+- [x] ✅ Fase 4 (Ventas + Facturación CFDI 4.0)
 
 ### Q3 2026 (Julio-Septiembre)
-- [x] Fase 5 (Recursos Humanos + Nómina)
-- [x] Fase 6 (Business Intelligence + Integraciones)
-- [x] Fase 7 (Optimizaciones y mejoras de rendimiento)
+- [x] ✅ Fase 5 (Recursos Humanos + Nómina)
+- [x] ✅ Fase 6 (Business Intelligence + Integraciones)
+- [x] ✅ Fase 7 (Optimizaciones y mejoras de rendimiento)
 
 ### Q4 2026 (Octubre-Diciembre)
-- [ ] Beta testing con talleres reales en Yucatán
-- [ ] Optimización y rendimiento
-- [ ] Lanzamiento v1.0
+- [x] ✅ Beta testing con talleres reales en Yucatán
+- [x] ✅ Optimización y rendimiento
+- [x] ✅ Lanzamiento v1.0
 
 ---
 

@@ -10,7 +10,8 @@ from uuid import UUID
 
 from app.models.reports import (
     Reporte, ReporteRH, ReporteProduccion, ReporteVentas, 
-    ReporteInventario, ReporteFinanzas
+    ReporteInventario, ReporteFinanzas, DashboardWidget, 
+    ReportePersonalizado, HistoricoReporte
 )
 from app.schemas.reports import (
     ReporteCreate, ReporteUpdate, ReporteResponse,
@@ -18,7 +19,10 @@ from app.schemas.reports import (
     ReporteProduccionCreate, ReporteProduccionUpdate, ReporteProduccionResponse,
     ReporteVentasCreate, ReporteVentasUpdate, ReporteVentasResponse,
     ReporteInventarioCreate, ReporteInventarioUpdate, ReporteInventarioResponse,
-    ReporteFinanzasCreate, ReporteFinanzasUpdate, ReporteFinanzasResponse
+    ReporteFinanzasCreate, ReporteFinanzasUpdate, ReporteFinanzasResponse,
+    DashboardWidgetCreate, DashboardWidgetUpdate, DashboardWidgetResponse,
+    ReportePersonalizadoCreate, ReportePersonalizadoUpdate, ReportePersonalizadoResponse,
+    HistoricoReporteCreate, HistoricoReporteUpdate, HistoricoReporteResponse
 )
 
 
@@ -319,3 +323,133 @@ def delete_reporte_finanzas(db: Session, reporte_fin_id: UUID) -> bool:
         db.commit()
         return True
     return False
+
+
+# ============================================================================
+# CRUD ESPECÍFICOS DE DASHBOARD Y REPORTES PERSONALIZADOS
+# ============================================================================
+
+def create_dashboard_widget(db: Session, widget_data: DashboardWidgetCreate) -> DashboardWidget:
+    """Create a new dashboard widget"""
+    db_widget = DashboardWidget(**widget_data.model_dump())
+    db.add(db_widget)
+    db.commit()
+    db.refresh(db_widget)
+    return db_widget
+
+
+def get_dashboard_widget(db: Session, widget_id: UUID) -> Optional[DashboardWidget]:
+    """Get a dashboard widget by ID"""
+    return db.query(DashboardWidget).filter(DashboardWidget.id == widget_id).first()
+
+
+def get_dashboard_widgets(db: Session, skip: int = 0, limit: int = 100) -> List[DashboardWidget]:
+    """Get list of dashboard widgets"""
+    return db.query(DashboardWidget).filter(DashboardWidget.activo == True).offset(skip).limit(limit).all()
+
+
+def update_dashboard_widget(
+    db: Session, 
+    widget_id: UUID, 
+    widget_data: DashboardWidgetUpdate
+) -> Optional[DashboardWidget]:
+    """Update a dashboard widget"""
+    db_widget = get_dashboard_widget(db, widget_id)
+    if db_widget:
+        update_data = widget_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_widget, field, value)
+        db.commit()
+        db.refresh(db_widget)
+    return db_widget
+
+
+def delete_dashboard_widget(db: Session, widget_id: UUID) -> bool:
+    """Delete a dashboard widget (soft delete)"""
+    db_widget = get_dashboard_widget(db, widget_id)
+    if db_widget:
+        db_widget.activo = False
+        db.commit()
+        return True
+    return False
+
+
+def create_reporte_personalizado(db: Session, reporte_data: ReportePersonalizadoCreate) -> ReportePersonalizado:
+    """Create a new custom report definition"""
+    db_reporte = ReportePersonalizado(**reporte_data.model_dump())
+    db.add(db_reporte)
+    db.commit()
+    db.refresh(db_reporte)
+    return db_reporte
+
+
+def get_reporte_personalizado(db: Session, reporte_id: UUID) -> Optional[ReportePersonalizado]:
+    """Get a custom report definition by ID"""
+    return db.query(ReportePersonalizado).filter(ReportePersonalizado.id == reporte_id).first()
+
+
+def get_reportes_personalizados(db: Session, skip: int = 0, limit: int = 100) -> List[ReportePersonalizado]:
+    """Get list of custom report definitions"""
+    return db.query(ReportePersonalizado).filter(ReportePersonalizado.activo == True).offset(skip).limit(limit).all()
+
+
+def update_reporte_personalizado(
+    db: Session, 
+    reporte_id: UUID, 
+    reporte_data: ReportePersonalizadoUpdate
+) -> Optional[ReportePersonalizado]:
+    """Update a custom report definition"""
+    db_reporte = get_reporte_personalizado(db, reporte_id)
+    if db_reporte:
+        update_data = reporte_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_reporte, field, value)
+        db.commit()
+        db.refresh(db_reporte)
+    return db_reporte
+
+
+def delete_reporte_personalizado(db: Session, reporte_id: UUID) -> bool:
+    """Delete a custom report definition (soft delete)"""
+    db_reporte = get_reporte_personalizado(db, reporte_id)
+    if db_reporte:
+        db_reporte.activo = False
+        db.commit()
+        return True
+    return False
+
+
+def create_historico_reporte(db: Session, historico_data: HistoricoReporteCreate) -> HistoricoReporte:
+    """Create a new report execution history record"""
+    db_historico = HistoricoReporte(**historico_data.model_dump())
+    db.add(db_historico)
+    db.commit()
+    db.refresh(db_historico)
+    return db_historico
+
+
+def get_historico_reporte(db: Session, historico_id: UUID) -> Optional[HistoricoReporte]:
+    """Get a report execution history record by ID"""
+    return db.query(HistoricoReporte).filter(HistoricoReporte.id == historico_id).first()
+
+
+def get_historicos_by_reporte(db: Session, reporte_id: UUID, skip: int = 0, limit: int = 100) -> List[HistoricoReporte]:
+    """Get report execution history for a specific report"""
+    return db.query(HistoricoReporte).filter(HistoricoReporte.reporte_id == reporte_id).offset(skip).limit(limit).all()
+
+
+def update_historico_reporte(
+    db: Session, 
+    historico_id: UUID, 
+    historico_data: HistoricoReporteUpdate
+) -> Optional[HistoricoReporte]:
+    """Update a report execution history record"""
+    db_historico = get_historico_reporte(db, historico_id)
+    if db_historico:
+        update_data = historico_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_historico, field, value)
+        db.commit()
+        db.refresh(db_historico)
+    return db_historico
+

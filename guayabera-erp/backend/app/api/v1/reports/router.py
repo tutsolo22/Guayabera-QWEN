@@ -11,21 +11,30 @@ from app.schemas.reports import (
     ReporteProduccionCreate, ReporteProduccionUpdate, ReporteProduccionResponse,
     ReporteVentasCreate, ReporteVentasUpdate, ReporteVentasResponse,
     ReporteInventarioCreate, ReporteInventarioUpdate, ReporteInventarioResponse,
-    ReporteFinanzasCreate, ReporteFinanzasUpdate, ReporteFinanzasResponse
+    ReporteFinanzasCreate, ReporteFinanzasUpdate, ReporteFinanzasResponse,
+    DashboardWidgetCreate, DashboardWidgetUpdate, DashboardWidgetResponse,
+    ReportePersonalizadoCreate, ReportePersonalizadoUpdate, ReportePersonalizadoResponse,
+    HistoricoReporteCreate, HistoricoReporteUpdate, HistoricoReporteResponse
 )
 from app.crud.reports import (
-    create_reporte, get_reporte, get_reporte_by_codigo, get_reportes,
+    create_reporte, get_reporte, get_reportes,
     update_reporte, delete_reporte,
-    create_reporte_rh, get_reporte_rh, get_reportes_rh_by_reporte,
+    create_reporte_rh, get_reporte_rh, get_reportes_rh,
     update_reporte_rh, delete_reporte_rh,
-    create_reporte_produccion, get_reporte_produccion, get_reportes_produccion_by_reporte,
+    create_reporte_produccion, get_reporte_produccion, get_reportes_produccion,
     update_reporte_produccion, delete_reporte_produccion,
-    create_reporte_ventas, get_reporte_ventas, get_reportes_ventas_by_reporte,
+    create_reporte_ventas, get_reporte_ventas, get_reportes_ventas,
     update_reporte_ventas, delete_reporte_ventas,
-    create_reporte_inventario, get_reporte_inventario, get_reportes_inventario_by_reporte,
+    create_reporte_inventario, get_reporte_inventario, get_reportes_inventario,
     update_reporte_inventario, delete_reporte_inventario,
-    create_reporte_finanzas, get_reporte_finanzas, get_reportes_finanzas_by_reporte,
-    update_reporte_finanzas, delete_reporte_finanzas
+    create_reporte_finanzas, get_reporte_finanzas, get_reportes_finanzas,
+    update_reporte_finanzas, delete_reporte_finanzas,
+    create_dashboard_widget, get_dashboard_widget, get_dashboard_widgets,
+    update_dashboard_widget, delete_dashboard_widget,
+    create_reporte_personalizado, get_reporte_personalizado, get_reportes_personalizados,
+    update_reporte_personalizado, delete_reporte_personalizado,
+    create_historico_reporte, get_historico_reporte, get_historicos_by_reporte,
+    update_historico_reporte
 )
 
 router = APIRouter()
@@ -407,3 +416,181 @@ def delete_reporte_finanzas_endpoint(
     if not deleted:
         raise HTTPException(status_code=404, detail="Reporte de Finanzas no encontrado")
     return {"message": "Reporte de Finanzas eliminado exitosamente"}
+
+
+# ============================================================================
+# ENDPOINTS PARA WIDGETS DEL DASHBOARD EJECUTIVO
+# ============================================================================
+
+@router.post("/dashboard-widgets", response_model=DashboardWidgetResponse)
+def create_dashboard_widget_endpoint(
+    widget_data: DashboardWidgetCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return create_dashboard_widget(db, widget_data)
+
+
+@router.get("/dashboard-widgets/{widget_id}", response_model=DashboardWidgetResponse)
+def get_dashboard_widget_endpoint(
+    widget_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    widget = get_dashboard_widget(db, UUID(widget_id))
+    if not widget:
+        raise HTTPException(status_code=404, detail="Widget no encontrado")
+    return widget
+
+
+@router.get("/dashboard-widgets", response_model=List[DashboardWidgetResponse])
+def get_dashboard_widgets_endpoint(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_dashboard_widgets(db, skip, limit)
+
+
+@router.put("/dashboard-widgets/{widget_id}", response_model=DashboardWidgetResponse)
+def update_dashboard_widget_endpoint(
+    widget_id: str,
+    widget_data: DashboardWidgetUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    updated_widget = update_dashboard_widget(db, UUID(widget_id), widget_data)
+    if not updated_widget:
+        raise HTTPException(status_code=404, detail="Widget no encontrado")
+    return updated_widget
+
+
+@router.delete("/dashboard-widgets/{widget_id}")
+def delete_dashboard_widget_endpoint(
+    widget_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    deleted = delete_dashboard_widget(db, UUID(widget_id))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Widget no encontrado")
+    return {"message": "Widget eliminado exitosamente"}
+
+
+# ============================================================================
+# ENDPOINTS PARA REPORTES PERSONALIZADOS
+# ============================================================================
+
+@router.post("/reportes-personalizados", response_model=ReportePersonalizadoResponse)
+def create_reporte_personalizado_endpoint(
+    reporte_data: ReportePersonalizadoCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return create_reporte_personalizado(db, reporte_data)
+
+
+@router.get("/reportes-personalizados/{reporte_id}", response_model=ReportePersonalizadoResponse)
+def get_reporte_personalizado_endpoint(
+    reporte_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    reporte = get_reporte_personalizado(db, UUID(reporte_id))
+    if not reporte:
+        raise HTTPException(status_code=404, detail="Reporte personalizado no encontrado")
+    return reporte
+
+
+@router.get("/reportes-personalizados", response_model=List[ReportePersonalizadoResponse])
+def get_reportes_personalizados_endpoint(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_reportes_personalizados(db, skip, limit)
+
+
+@router.put("/reportes-personalizados/{reporte_id}", response_model=ReportePersonalizadoResponse)
+def update_reporte_personalizado_endpoint(
+    reporte_id: str,
+    reporte_data: ReportePersonalizadoUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    updated_reporte = update_reporte_personalizado(db, UUID(reporte_id), reporte_data)
+    if not updated_reporte:
+        raise HTTPException(status_code=404, detail="Reporte personalizado no encontrado")
+    return updated_reporte
+
+
+@router.delete("/reportes-personalizados/{reporte_id}")
+def delete_reporte_personalizado_endpoint(
+    reporte_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    deleted = delete_reporte_personalizado(db, UUID(reporte_id))
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Reporte personalizado no encontrado")
+    return {"message": "Reporte personalizado eliminado exitosamente"}
+
+
+# ============================================================================
+# ENDPOINTS PARA HISTÓRICO DE REPORTES
+# ============================================================================
+
+@router.post("/historico-reportes", response_model=HistoricoReporteResponse)
+def create_historico_reporte_endpoint(
+    historico_data: HistoricoReporteCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return create_historico_reporte(db, historico_data)
+
+
+@router.get("/historico-reportes/{historico_id}", response_model=HistoricoReporteResponse)
+def get_historico_reporte_endpoint(
+    historico_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    historico = get_historico_reporte(db, UUID(historico_id))
+    if not historico:
+        raise HTTPException(status_code=404, detail="Histórico de reporte no encontrado")
+    return historico
+
+
+@router.get("/historico-reportes/reporte/{reporte_id}", response_model=List[HistoricoReporteResponse])
+def get_historicos_by_reporte_endpoint(
+    reporte_id: str,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    return get_historicos_by_reporte(db, UUID(reporte_id), skip, limit)
+
+
+@router.put("/historico-reportes/{historico_id}", response_model=HistoricoReporteResponse)
+def update_historico_reporte_endpoint(
+    historico_id: str,
+    historico_data: HistoricoReporteUpdate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from uuid import UUID
+    updated_historico = update_historico_reporte(db, UUID(historico_id), historico_data)
+    if not updated_historico:
+        raise HTTPException(status_code=404, detail="Histórico de reporte no encontrado")
+    return updated_historico

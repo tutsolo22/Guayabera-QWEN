@@ -274,3 +274,116 @@ class ReporteFinanzasResponse(ReporteFinanzasBase):
 
     class Config:
         from_attributes = True
+
+
+# ============================================================================
+# SCHEMAS ESPECÍFICOS DE REPORTES Y DASHBOARD
+# ============================================================================
+
+class DashboardWidgetBase(BaseModel):
+    nombre: str = Field(..., max_length=100, description="Nombre del widget")
+    tipo: str = Field(..., max_length=50, description="Tipo de widget")
+    configuracion: Optional[Dict[str, Any]] = Field(None, description="Configuración específica del widget")
+    posicion_x: int = Field(default=0, description="Posición X en el grid")
+    posicion_y: int = Field(default=0, description="Posición Y en el grid")
+    tamano_w: int = Field(default=4, description="Ancho del widget")
+    tamano_h: int = Field(default=3, description="Alto del widget")
+    modulo_origen: Optional[str] = Field(None, max_length=50, description="Módulo del cual obtiene datos")
+    empresa_id: Optional[UUID4] = Field(None, description="ID de la empresa (para multiempresa)")
+
+
+class DashboardWidgetCreate(DashboardWidgetBase):
+    pass
+
+
+class DashboardWidgetUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=100)
+    tipo: Optional[str] = Field(None, max_length=50)
+    configuracion: Optional[Dict[str, Any]] = None
+    posicion_x: Optional[int] = None
+    posicion_y: Optional[int] = None
+    tamano_w: Optional[int] = None
+    tamano_h: Optional[int] = None
+    modulo_origen: Optional[str] = Field(None, max_length=50)
+    empresa_id: Optional[UUID4] = None
+    activo: Optional[bool] = None
+
+
+class DashboardWidgetResponse(DashboardWidgetBase):
+    id: UUID4
+    activo: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ReportePersonalizadoBase(BaseModel):
+    nombre: str = Field(..., max_length=200, description="Nombre del reporte")
+    descripcion: Optional[str] = Field(None, description="Descripción del reporte")
+    modulo: str = Field(..., max_length=50, description="Módulo al que pertenece")
+    tipo: str = Field(..., max_length=50, description="Tipo de reporte")
+    consulta_sql: Optional[str] = Field(None, description="Consulta SQL personalizada")
+    parametros: Optional[Dict[str, Any]] = Field(None, description="Parámetros del reporte")
+    formato_salida: str = Field(default="pdf", max_length=20, description="Formato de salida del reporte")
+    empresa_id: Optional[UUID4] = Field(None, description="ID de la empresa (para multiempresa)")
+
+
+class ReportePersonalizadoCreate(ReportePersonalizadoBase):
+    pass
+
+
+class ReportePersonalizadoUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=200)
+    descripcion: Optional[str] = None
+    modulo: Optional[str] = Field(None, max_length=50)
+    tipo: Optional[str] = Field(None, max_length=50)
+    consulta_sql: Optional[str] = None
+    parametros: Optional[Dict[str, Any]] = None
+    formato_salida: Optional[str] = Field(None, max_length=20)
+    activo: Optional[bool] = None
+    empresa_id: Optional[UUID4] = None
+
+
+class ReportePersonalizadoResponse(ReportePersonalizadoBase):
+    id: UUID4
+    activo: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class HistoricoReporteBase(BaseModel):
+    reporte_id: UUID4
+    usuario_ejecutor_id: UUID4
+    parametros_utilizados: Optional[Dict[str, Any]] = None
+    duracion_segundos: Optional[float] = None
+    tamano_bytes: Optional[int] = None
+    ruta_archivo: Optional[str] = Field(None, max_length=500)
+    estado: str = Field(default="procesando", max_length=20)
+    mensaje_error: Optional[str] = None
+
+
+class HistoricoReporteCreate(HistoricoReporteBase):
+    pass
+
+
+class HistoricoReporteUpdate(BaseModel):
+    parametros_utilizados: Optional[Dict[str, Any]] = None
+    duracion_segundos: Optional[float] = None
+    tamano_bytes: Optional[int] = None
+    ruta_archivo: Optional[str] = Field(None, max_length=500)
+    estado: Optional[str] = Field(None, max_length=20)
+    mensaje_error: Optional[str] = None
+
+
+class HistoricoReporteResponse(HistoricoReporteBase):
+    id: UUID4
+    fecha_ejecucion: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

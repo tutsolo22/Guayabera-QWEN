@@ -270,3 +270,72 @@ class ReporteFinanzas(Base):
     reporte = relationship("Reporte")
     cuenta = relationship("Cuenta")
     poliza = relationship("Poliza")
+
+
+# ============================================================================
+# MODELOS ESPECÍFICOS DE REPORTES Y DASHBOARD
+# ============================================================================
+
+class DashboardWidget(Base):
+    """Widgets del dashboard ejecutivo - Executive dashboard widgets"""
+    __tablename__ = "rep_dashboard_widget"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    nombre = Column(String(100), nullable=False)
+    tipo = Column(String(50), nullable=False)  # grafica_barras, grafica_lineas, grafica_pie, metrica, tabla, etc.
+    configuracion = Column(JSONB)  # Configuración específica del widget
+    posicion_x = Column(Integer, default=0)
+    posicion_y = Column(Integer, default=0)
+    tamano_w = Column(Integer, default=4)  # Ancho en unidades de grid
+    tamano_h = Column(Integer, default=3)  # Alto en unidades de grid
+    modulo_origen = Column(String(50))  # Módulo del cual obtiene datos
+    empresa_id = Column(UUID(as_uuid=True), ForeignKey("emp_empresa.id"))  # Para multiempresa
+    
+    activo = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class ReportePersonalizado(Base):
+    """Definición de reportes personalizados - Custom report definitions"""
+    __tablename__ = "rep_reporte_personalizado"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    nombre = Column(String(200), nullable=False)
+    descripcion = Column(Text)
+    modulo = Column(String(50), nullable=False)  # rh, ventas, produccion, etc.
+    tipo = Column(String(50), nullable=False)  # analisis, operacional, financiero, fiscal
+    consulta_sql = Column(Text)  # Consulta SQL personalizada
+    parametros = Column(JSONB)  # Parámetros del reporte
+    formato_salida = Column(String(20), default="pdf")  # pdf, excel, csv, html
+    activo = Column(Boolean, default=True)
+    empresa_id = Column(UUID(as_uuid=True), ForeignKey("emp_empresa.id"))  # Para multiempresa
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class HistoricoReporte(Base):
+    """Historial de ejecución de reportes - Report execution history"""
+    __tablename__ = "rep_historico_reporte"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    reporte_id = Column(UUID(as_uuid=True), ForeignKey("rep_reporte_personalizado.id"), nullable=False)
+    usuario_ejecutor_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+    parametros_utilizados = Column(JSONB)  # Parámetros usados en la ejecución
+    fecha_ejecucion = Column(DateTime(timezone=True), server_default=func.now())
+    duracion_segundos = Column(Float)  # Tiempo que tomó generar el reporte
+    tamano_bytes = Column(Integer)  # Tamaño del archivo generado
+    ruta_archivo = Column(String(500))  # Ruta donde se guardó el archivo
+    estado = Column(String(20), default="procesando")  # procesando, completado, fallido
+    mensaje_error = Column(Text)  # En caso de error
+    
+    reporte = relationship("ReportePersonalizado")
+    usuario = relationship("Empleado")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+

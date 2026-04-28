@@ -82,6 +82,109 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ---
 
+## 📦 Módulos del Sistema
+
+Guayabera ERP cuenta con una arquitectura modular que permite adaptarse a las necesidades específicas de tu negocio. A continuación se detallan los módulos disponibles:
+
+### 🧵 Producción
+- MRP (Planificación de Requerimientos de Materiales)
+- Control de calidad
+- Gestión de órdenes de producción
+- Análisis de Pareto
+- Gráficos de control estadístico
+- Gestión de recetas y formulas
+- Seguimiento de lotes y caducidad
+
+### 🛒 Ventas
+- Gestión de clientes
+- Catálogo de productos multivariante
+- Precios por niveles de cliente
+- Pedidos con anticipos
+- Notas de crédito automáticas
+- Cotizaciones y propuestas comerciales
+- CRM integrado
+
+### 📦 Inventario
+- Gestión de almacenes
+- Control de existencias
+- Variaciones de productos
+- Inventario físico
+- Escaneo de códigos QR y barras
+- Alertas de inventario mínimo/máximo
+
+### 👥 Recursos Humanos
+- Gestión de empleados
+- Control de asistencia
+- Nómina
+- Evaluación de desempeño
+- Capacitación y desarrollo
+- Reclutamiento y selección
+
+### 💰 Finanzas
+- Contabilidad general
+- Cuentas por pagar/cobrar
+- Bancos y conciliación
+- Facturación electrónica
+- Presupuestación colaborativa
+- Análisis de desviaciones
+- Tesorería y flujo de efectivo
+
+### 🛍️ Compras
+- Gestión de proveedores
+- Requisiciones y órdenes de compra
+- Análisis de proveedores
+- Recepción de mercancía
+- Devoluciones a proveedores
+
+### 🚚 Logística
+- Gestión de almacenes
+- Control de entradas/salidas
+- Gestión de transporte
+- Control de inventarios en tránsito
+- Manejo de paquetería y guías
+
+### 📊 Business Intelligence
+- Dashboard ejecutivo
+- Reportes personalizados
+- KPIs personalizados
+- Análisis predictivo
+- Análisis de sensibilidad
+- Exportación de datos a múltiples formatos
+
+### 🎨 Diseño Asistido
+- Gestión de diseños
+- Tablas de tallas
+- Hojas de ruta de producción
+- Gestión de muestras y prototipos
+
+---
+
+## ⚙️ Funcionalidades Avanzadas
+
+### 🤖 Inteligencia Artificial
+- Asistente de IA con base de conocimientos
+- Clasificación automática de transacciones
+- Detección de fraudes
+- Análisis predictivo de demanda
+- Optimización de precios
+
+### 🔐 Seguridad
+- Auditoría de seguridad
+- Control de versiones
+- Encriptación de datos
+- Firmas electrónicas
+- Autenticación multifactor
+- Políticas de retención de datos
+
+### 🔗 Integraciones
+- Facturación electrónica (Facturama, Timbrado SAT)
+- Integración bancaria (Santander, BBVA, Banamex)
+- Correos electrónicos (SMTP, SendGrid, Mailgun)
+- Notificaciones en tiempo real (WebSocket, Push)
+- API pública para integración con sistemas externos
+
+---
+
 ## 📚 Endpoints Disponibles (Todos los módulos completos)
 
 ### Administración
@@ -277,6 +380,21 @@ ports:
 - **Progreso**: `PROGRESO.md`
 - **Documentación API**: http://localhost:8000/docs
 - **README General**: `README.md`
+
+---
+
+## 🧠 Consejos para el Desarrollo
+
+### Organización del Código
+- El código está organizado por módulos en el directorio `/backend/app/api/v1`
+- Cada módulo tiene su propia carpeta con modelos, esquemas, rutas y servicios
+- La lógica de negocio se encuentra en `/backend/app/core` y `/backend/app/utils`
+
+### Buenas Prácticas
+- Utiliza migraciones Alembic para cualquier cambio en la base de datos
+- Sigue el principio de responsabilidad única en las funciones
+- Documenta tu código con docstrings claros
+- Escribe pruebas unitarias para nuevas funcionalidades
 
 ---
 
