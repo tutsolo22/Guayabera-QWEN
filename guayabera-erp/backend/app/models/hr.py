@@ -4,10 +4,12 @@ Specialized for textile manufacturing companies
 """
 
 from sqlalchemy import (Column, String, Boolean, DateTime, ForeignKey, Text, 
-                        Float, Integer, Date, Numeric, CheckConstraint, Enum as SQLEnum)
+                        Float, Integer, Date, Time, Numeric, UniqueConstraint, CheckConstraint, Index,
+                        func)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy import Enum as SQLEnum
 import uuid
 import enum
 
@@ -395,7 +397,7 @@ class Nomina(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
-    periodo_pago_id = Column(UUID(as_uuid=True), ForeignKey("rh_periodo_pago.id"), nullable=False)
+    periodo_pago_id = Column(UUID(as_uuid=True), ForeignKey("nom_periodo.id"), nullable=False)
     
     # Payroll details
     tipo_nomina = Column(SQLEnum(TipoNomina), default=TipoNomina.ORDINARIA)
@@ -445,40 +447,7 @@ class Nomina(Base):
     deleted_at = Column(DateTime(timezone=True))
     
     empleado = relationship("Empleado", back_populates="nominas")
-    periodo_pago = relationship("PeriodoPago")
-
-
-class PeriodoPago(Base):
-    """Payroll periods - Periodos de nómina"""
-    __tablename__ = "rh_periodo_pago"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    # Period details
-    nombre = Column(String(100), nullable=False)  # e.g., "Quincena 1 Enero 2023"
-    codigo = Column(String(30), unique=True, nullable=False, index=True)
-    descripcion = Column(Text)
-    
-    # Dates
-    fecha_inicio_periodo = Column(Date, nullable=False)
-    fecha_fin_periodo = Column(Date, nullable=False)
-    fecha_pago_nomina = Column(Date, nullable=False)  # Scheduled payment date
-    
-    # Type and frequency
-    tipo_periodo = Column(String(20), nullable=False)  # quincenal, mensual, semanal
-    frecuencia_pago = Column(Integer, default=2)  # Number of payments per month
-    
-    # Status
-    cerrado = Column(Boolean, default=False)  # If period is closed for modifications
-    fecha_cierre = Column(DateTime(timezone=True))  # Date when period was closed
-    
-    # Metadata
-    comentarios = Column(Text)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True))
+    periodo = relationship("PeriodoNomina", back_populates="nominas")  # Changed from PeriodoPago to PeriodoNomina
 
 
 class Percepcion(Base):
@@ -560,50 +529,48 @@ class VistaAnuncio(Base):
     fecha_vista = Column(DateTime(timezone=True), server_default=func.now())
     
     anuncio = relationship("Anuncio", back_populates="vistas")
-    empleado = relationship("Empleado")
+    empleado = relationship("Empleado", back_populates="vistas")
 
 
-class Vacacion(Base):
-    """Vacaciones de los empleados - Employee vacations"""
-    __tablename__ = "rh_vacacion"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
-    fecha_inicio = Column(Date, nullable=False)
-    fecha_fin = Column(Date, nullable=False)
-    dias_solicitados = Column(Integer, nullable=False)
-    estado = Column(String(20), default="pendiente")  # pendiente, aprobado, rechazado, cancelado
-    comentarios = Column(Text)
-    fecha_aprobacion = Column(DateTime(timezone=True))
-    aprobado_por_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))
-    
-    empleado = relationship("Empleado", foreign_keys=[empleado_id])
-    aprobador = relationship("Empleado", foreign_keys=[aprobado_por_id])
-    
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+# Eliminando la clase Vacacion duplicada
+# La primera definición en la línea 345 es la correcta
+# class Vacacion(Base):
+#     """Vacaciones de los empleados - Employee vacations"""
+#     __tablename__ = "rh_vacacion"
+# 
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#     
+#     empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+#     fecha_inicio = Column(Date, nullable=False)
+#     fecha_fin = Column(Date, nullable=False)
+#     dias_solicitados = Column(Integer, nullable=False)
+#     estado = Column(String(20), default="pendiente")  # pendiente, aprobado, rechazado, cancelado
+#     comentarios = Column(Text)
+#     fecha_aprobacion = Column(DateTime(timezone=True))
+#     aprobado_por_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))
+#     
+#     empleado = relationship("Empleado", foreign_keys=[empleado_id])
 
 
-class Incapacidad(Base):
-    """Incapacidades de los empleados - Employee disabilities/medical leaves"""
-    __tablename__ = "rh_incapacidad"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
-    fecha_inicio = Column(Date, nullable=False)
-    fecha_fin = Column(Date)
-    tipo_incapacidad = Column(String(50), nullable=False)  # enfermedad, accidente, maternidad, etc.
-    documento_soporte = Column(String(500))  # Ruta al archivo digital subido
-    estado = Column(String(20), default="registrado")  # registrado, aprobado, rechazado
-    comentarios = Column(Text)
-    
-    empleado = relationship("Empleado")
-    
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
+# Eliminando la clase Incapacidad duplicada
+# La primera definición en la línea 309 es la correcta
+# class Incapacidad(Base):
+#     """Incapacidades de los empleados - Employee disabilities/medical leaves"""
+#     __tablename__ = "rh_incapacidad"
+# 
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#     
+#     empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+#     fecha_inicio = Column(Date, nullable=False)
+#     fecha_fin = Column(Date)
+#     tipo_incapacidad = Column(String(50), nullable=False)  # enfermedad, accidente, maternidad, etc.
+#     documento_soporte = Column(String(500))  # Ruta al archivo digital subido
+#     estado = Column(String(20), default="registrado")  # registrado, aprobado, rechazado
+#     comentarios = Column(Text)
+#     
+#     empleado = relationship("Empleado")
+#     
+#     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class SolicitudEquipo(Base):
     """Solicitudes de equipo de cómputo - Computer equipment requests"""
@@ -630,3 +597,64 @@ class SolicitudEquipo(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+
+class Horario(Base):
+    """Employee schedules - Horarios de empleados"""
+    __tablename__ = "rh_horario"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    codigo = Column(String(20), unique=True, nullable=False, index=True)  # EJ: HOR-001
+    nombre = Column(String(100), nullable=False)  # Nombre del horario
+    descripcion = Column(Text)
+    
+    # Schedule details
+    hora_entrada = Column(Time, nullable=False)  # Start time
+    hora_salida = Column(Time, nullable=False)   # End time
+    hora_entrada_comida = Column(Time)           # Lunch start time
+    hora_salida_comida = Column(Time)            # Lunch end time
+    lunes = Column(Boolean, default=True)
+    martes = Column(Boolean, default=True)
+    miercoles = Column(Boolean, default=True)
+    jueves = Column(Boolean, default=True)
+    viernes = Column(Boolean, default=True)
+    sabado = Column(Boolean, default=False)
+    domingo = Column(Boolean, default=False)
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Metadata
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    asignaciones = relationship("EmpleadoHorario", back_populates="horario")
+
+
+class EmpleadoHorario(Base):
+    """Assignment of schedules to employees - Asignación de horarios a empleados"""
+    __tablename__ = "rh_empleado_horario"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+    horario_id = Column(UUID(as_uuid=True), ForeignKey("rh_horario.id"), nullable=False)
+    
+    fecha_inicio = Column(Date, nullable=False)
+    fecha_fin = Column(Date)  # Optional end date
+    estado = Column(String(20), default="activo")  # activo, inactivo, suspendido
+    
+    # Metadata
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    empleado = relationship("Empleado", back_populates="horarios")
+    horario = relationship("Horario", back_populates="asignaciones")

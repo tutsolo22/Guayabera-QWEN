@@ -19,8 +19,11 @@ class ConfiguracionCorreo(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Company association
+    # Company association (multi-tenant support)
     empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
+    
+    # User responsible (typically the super admin for this tenant)
+    usuario_responsable_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     
     # SMTP configuration
     servidor_smtp = Column(String(255), nullable=False)  # e.g., smtp.gmail.com
@@ -57,6 +60,7 @@ class ConfiguracionCorreo(Base):
     
     # Relationships
     empresa = relationship("Empresa", back_populates="configuraciones_correo")
+    usuario_responsable = relationship("Usuario", back_populates="configuraciones_correo")
 
 
 class HistorialCorreo(Base):

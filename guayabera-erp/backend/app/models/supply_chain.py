@@ -44,6 +44,15 @@ class TipoMovimientoInventario(enum.Enum):
     PRODUCCION = "produccion"
 
 
+# Nuevo enum para estados de transferencia
+class EstadoTransferencia(enum.Enum):
+    SOLICITADA = "solicitada"
+    AUTORIZADA = "autorizada"
+    EN_TRANSITO = "en_transito"
+    RECIBIDA = "recibida"
+    CANCELADA = "cancelada"
+
+
 class EstadoDocumento(enum.Enum):
     ACTIVO = "activo"
     INACTIVO = "inactivo"
@@ -114,6 +123,7 @@ class Proveedor(Base):
     # Relationships
     ordenes_compra = relationship("OrdenCompra", back_populates="proveedor")
     contactos = relationship("ProveedorContacto", back_populates="proveedor")
+    producto_precios = relationship("ProductoPrecio", back_populates="proveedor")  # Added for sc_producto_precio
 
 
 class ProveedorContacto(Base):
@@ -161,7 +171,8 @@ class Producto(Base):
     # SAT Mexico - CFDI
     clave_sat = Column(String(20))  # ClaveProdServ del SAT
     clave_unidad = Column(String(10))  # ClaveUnidad del SAT
-    unidad_medida = Column(String(50))
+    # Cambiar unidad_medida de String a relación con UnidadMedida
+    unidad_medida_id = Column(UUID(as_uuid=True), ForeignKey("inv_unidad_medida.id"))
     
     # Classification
     familia = Column(String(100))
@@ -216,9 +227,11 @@ class Producto(Base):
     
     # Relationships
     categoria = relationship("AlmacenCategoria", back_populates="productos")
+    unidad_medida = relationship("UnidadMedida", back_populates="productos")
     movimientos = relationship("MovimientoInventario", back_populates="producto")
     detalles_orden = relationship("OrdenCompraDetalle", back_populates="producto")
     precios = relationship("ProductoPrecio", back_populates="producto")
+    precios_compra = relationship("ProductoPrecio", back_populates="producto")  # Added for sc_producto_precio
     numeros_serie = relationship("ProductoNumeroSerie", back_populates="producto")
     lotes = relationship("ProductoLote", back_populates="producto")
     producto_textil_detalle = relationship("ProductoTextil", back_populates="producto", uselist=False, cascade="all, delete-orphan")
@@ -246,3 +259,450 @@ class AlmacenCategoria(Base):
 
 
 class ProductoPrecio(Base):
+    """Modelo para precios de productos en la cadena de suministro"""
+    __tablename__ = "sc_producto_precio"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)  # Changed to UUID to match other tables
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed to match Producto table
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("com_proveedor.id"), nullable=False)  # Changed to match Proveedor table
+    precio_compra = Column(Numeric(12, 4), nullable=False)
+    moneda_id = Column(UUID(as_uuid=True), ForeignKey("admin_moneda.id"))  # Changed to match Moneda table
+    fecha_inicio = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_fin = Column(DateTime(timezone=True), nullable=True)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+    # Relaciones
+    producto = relationship("Producto", back_populates="precios_compra")
+    proveedor = relationship("Proveedor", back_populates="producto_precios")
+    moneda = relationship("Moneda")
+
+
+class ProductoNumeroSerie(Base):
+    """Product serial numbers - Números de serie de productos"""
+    __tablename__ = "alm_producto_numero_serie"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    
+    numero_serie = Column(String(100), unique=True, nullable=False, index=True)
+    numero_lote = Column(String(100), index=True)  # Optional batch number
+    fecha_fabricacion = Column(Date)
+    fecha_vencimiento = Column(Date)  # For products with shelf life
+    
+    # Status
+    estado = Column(String(20), default="disponible")  # disponible, vendido, devuelto, defectuoso
+    garantia_inicio = Column(Date)
+    garantia_fin = Column(Date)
+    
+    # Location tracking
+    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"))
+    ubicacion_detalle = Column(String(100))  # Specific location within warehouse
+    
+    # Metadata
+    notas = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    producto = relationship("Producto", back_populates="numeros_serie")
+    almacen = relationship("Almacen")
+
+
+class ProductoLote(Base):
+    """Product batches - Lotes de productos"""
+    __tablename__ = "alm_producto_lote"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    
+    numero_lote = Column(String(100), nullable=False, index=True)
+    cantidad_total = Column(Integer, nullable=False)
+    cantidad_disponible = Column(Integer, nullable=False)
+    
+    fecha_fabricacion = Column(Date)
+    fecha_vencimiento = Column(Date)
+    
+    # Status
+    estado = Column(String(20), default="activo")  # activo, vencido, cancelado
+    
+    # Metadata
+    notas = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    producto = relationship("Producto", back_populates="lotes")
+
+
+class Almacen(Base):
+    """Warehouse management - Administración de almacenes"""
+    __tablename__ = "alm_almacen"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Basic information
+    codigo = Column(String(20), unique=True, nullable=False, index=True)  # ALM-001
+    nombre = Column(String(200), nullable=False)
+    descripcion = Column(Text)
+    
+    # Location information
+    direccion = Column(String(500))
+    ciudad = Column(String(100))
+    estado = Column(String(100))
+    pais = Column(String(100), default="México")
+    codigo_postal = Column(String(10))
+    
+    # Warehouse specifications
+    capacidad_maxima = Column(Integer)  # Maximum capacity in units
+    capacidad_utilizada = Column(Integer, default=0)
+    tipo_almacen = Column(String(50))  # principal, secundario, temporal, tercerizado
+    temperatura_controlada = Column(Boolean, default=False)
+    humedad_controlada = Column(Boolean, default=False)
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Metadata
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    ubicaciones = relationship("UbicacionAlmacen", back_populates="almacen")
+    movimientos = relationship("MovimientoInventario", back_populates="almacen")
+
+
+class UbicacionAlmacen(Base):
+    """Warehouse location - Ubicación específica dentro de un almacén"""
+    __tablename__ = "alm_ubicacion_almacen"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    
+    codigo = Column(String(30), unique=True, nullable=False, index=True)  # EJ: A-01-01-01
+    descripcion = Column(String(200))
+    tipo_ubicacion = Column(String(50))  # estante, anaquel, caja, refrigerado, etc.
+    capacidad_maxima = Column(Integer)  # Maximum capacity in units
+    capacidad_utilizada = Column(Integer, default=0)
+    activa = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    almacen = relationship("Almacen", back_populates="ubicaciones")
+
+
+class MovimientoInventario(Base):
+    """Inventory movements - Movimientos de inventario"""
+    __tablename__ = "alm_movimiento_inventario"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Movement identification
+    codigo = Column(String(30), unique=True, nullable=False, index=True)  # MOV-0000001
+    tipo_movimiento = Column(SQLEnum(TipoMovimientoInventario), nullable=False)
+    fecha_movimiento = Column(Date, nullable=False)
+    
+    # Product and quantities
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    cantidad = Column(Integer, nullable=False)
+    cantidad_disponible_anterior = Column(Integer, default=0)  # Available before movement
+    cantidad_disponible_nueva = Column(Integer, default=0)  # Available after movement
+    
+    # Warehouse
+    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    
+    # Related documents
+    documento_tipo = Column(String(50))  # orden_compra, factura_venta, ajuste_inventario, etc.
+    documento_id = Column(UUID(as_uuid=True))  # ID of the related document
+    
+    # Reason for movement
+    motivo = Column(String(200))
+    observaciones = Column(Text)
+    
+    # Status
+    estado_documento = Column(SQLEnum(EstadoDocumento), default=EstadoDocumento.ACTIVO)
+    
+    # User responsible
+    usuario_registro_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    producto = relationship("Producto", back_populates="movimientos")
+    almacen = relationship("Almacen", back_populates="movimientos")
+    usuario_registro = relationship("Usuario")
+
+
+class Inventario(Base):
+    """Inventory tracking - Seguimiento de inventario"""
+    __tablename__ = "alm_inventario"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Basic information
+    codigo = Column(String(30), unique=True, nullable=False, index=True)  # INV-0000001
+    nombre = Column(String(200), nullable=False)  # Nombre del inventario o ajuste
+    descripcion = Column(Text)
+    
+    # References
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    
+    # Current stock
+    cantidad_existente = Column(Integer, default=0)  # Cantidad actual en inventario
+    cantidad_comprometida = Column(Integer, default=0)  # Cantidad comprometida en órdenes
+    cantidad_disponible = Column(Integer, default=0)  # Cantidad disponible para venta
+    
+    # Cost information
+    costo_unitario = Column(Numeric(15, 4))
+    valor_total_inventario = Column(Numeric(18, 4))
+    
+    # Status
+    estado = Column(String(20), default="activo")  # activo, inactivo, obsoleto
+    fecha_ultima_revision = Column(DateTime(timezone=True))
+    
+    # Metadata
+    notas = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    producto = relationship("Producto")
+    almacen = relationship("Almacen")
+
+
+class AlmacenListaPrecios(Base):
+    """Price lists for warehouses - Listas de precios para almacenes"""
+    __tablename__ = "alm_lista_precios"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    codigo = Column(String(30), unique=True, nullable=False, index=True)  # LP-001
+    nombre = Column(String(200), nullable=False)
+    descripcion = Column(Text)
+    activa = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    precios_producto = relationship("ProductoPrecio", back_populates="lista_precios")
+
+
+# Agregar las relaciones faltantes a otras clases
+# En la clase ProductoPrecio, agregar la relación con AlmacenListaPrecios
+# ProductoPrecio ya está definido anteriormente, así que actualizamos la relación:
+# producto_precios = relationship("ProductoPrecio", back_populates="producto")
+
+
+class OrdenCompra(Base):
+    """Purchase orders - Órdenes de compra"""
+    __tablename__ = "com_orden_compra"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Identification
+    folio = Column(String(20), unique=True, nullable=False, index=True)  # OC-0000001
+    descripcion = Column(Text)
+    
+    # References
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("com_proveedor.id"), nullable=False)
+    solicitante_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Who requested the order
+    
+    # Status and dates
+    estado = Column(SQLEnum(EstadoOrdenCompra), default=EstadoOrdenCompra.BORRADOR)
+    fecha_elaboracion = Column(Date, nullable=False)
+    fecha_estimada_entrega = Column(Date)
+    fecha_real_entrega = Column(Date)
+    
+    # Financial information
+    subtotal = Column(Numeric(15, 2), default=0)
+    impuestos = Column(Numeric(15, 2), default=0)
+    descuento = Column(Numeric(15, 2), default=0)
+    total = Column(Numeric(15, 2), nullable=False)
+    
+    # Metadata
+    moneda = Column(String(3), default="MXN")  # Currency
+    condiciones_pago = Column(Text)  # Payment conditions
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    proveedor = relationship("Proveedor", back_populates="ordenes_compra")
+    solicitante = relationship("Empleado")
+    detalles = relationship("OrdenCompraDetalle", back_populates="orden_compra")
+
+
+class OrdenCompraDetalle(Base):
+    """Purchase order details - Detalles de órdenes de compra"""
+    __tablename__ = "com_orden_compra_detalle"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    orden_compra_id = Column(UUID(as_uuid=True), ForeignKey("com_orden_compra.id"), nullable=False)
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    
+    # Item details
+    cantidad = Column(Integer, nullable=False)
+    precio_unitario = Column(Numeric(15, 4), nullable=False)
+    subtotal = Column(Numeric(15, 2), nullable=False)
+    impuestos = Column(Numeric(15, 2), default=0)
+    descuento = Column(Numeric(15, 2), default=0)
+    total = Column(Numeric(15, 2), nullable=False)
+    
+    # Tracking
+    cantidad_recibida = Column(Integer, default=0)  # Quantity received so far
+    estado_detalle = Column(String(20), default="pendiente")  # pending, partial, completed
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    orden_compra = relationship("OrdenCompra", back_populates="detalles")
+    producto = relationship("Producto", back_populates="detalles_orden")
+
+
+class RecepcionCompra(Base):
+    """Purchase receipts - Recepciones de compra"""
+    __tablename__ = "com_recepcion_compra"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Identification
+    folio = Column(String(20), unique=True, nullable=False, index=True)  # RC-0000001
+    descripcion = Column(Text)
+    
+    # References
+    orden_compra_id = Column(UUID(as_uuid=True), ForeignKey("com_orden_compra.id"))
+    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    recibido_por_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Who received
+    
+    # Status
+    fecha_recepcion = Column(Date, nullable=False)
+    estado = Column(String(20), default="completa")  # completa, parcial, pendiente
+    
+    # Metadata
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    orden_compra = relationship("OrdenCompra")
+    almacen = relationship("Almacen")
+    recibido_por = relationship("Empleado", foreign_keys=[recibido_por_id])
+    detalles = relationship("RecepcionCompraDetalle", back_populates="recepcion")
+
+
+class RecepcionCompraDetalle(Base):
+    """Purchase receipt details - Detalles de recepciones de compra"""
+    __tablename__ = "com_recepcion_compra_detalle"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    recepcion_id = Column(UUID(as_uuid=True), ForeignKey("com_recepcion_compra.id"), nullable=False)
+    orden_detalle_id = Column(UUID(as_uuid=True), ForeignKey("com_orden_compra_detalle.id"))  # Related order detail
+    
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    cantidad_recibida = Column(Integer, nullable=False)
+    cantidad_aceptada = Column(Integer, nullable=False)  # Accepted quantity after inspection
+    cantidad_rechazada = Column(Integer, default=0)  # Rejected quantity
+    
+    # Quality control
+    inspeccion_realizada = Column(Boolean, default=False)
+    resultado_inspeccion = Column(String(20))  # aceptado, rechazado, parcialmente_aceptado
+    comentarios_calidad = Column(Text)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    recepcion = relationship("RecepcionCompra", back_populates="detalles")
+    orden_detalle = relationship("OrdenCompraDetalle")
+    producto = relationship("Producto")
+
+
+# ============================================================================
+# INVENTORY TRANSFERS (TRANSFERENCIAS DE INVENTARIO)
+# ============================================================================
+
+class TransferenciaInventario(Base):
+    """Inventory transfers between warehouses - Transferencias de inventario entre almacenes"""
+    __tablename__ = "inv_transferencia"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Identification
+    folio = Column(String(20), unique=True, nullable=False, index=True)  # TR-0000001
+    descripcion = Column(Text)
+    
+    # References
+    almacen_origen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    almacen_destino_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
+    solicitante_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Who requested the transfer
+    
+    # Status and dates
+    estado = Column(SQLEnum(EstadoTransferencia), default=EstadoTransferencia.SOLICITADA)
+    fecha_solicitud = Column(Date, nullable=False)
+    fecha_autorizacion = Column(Date)
+    fecha_envio = Column(Date)
+    fecha_recepcion = Column(Date)
+    
+    # Metadata
+    motivo_transferencia = Column(Text)  # Reason for transfer
+    comentarios = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    almacen_origen = relationship("Almacen", foreign_keys=[almacen_origen_id])
+    almacen_destino = relationship("Almacen", foreign_keys=[almacen_destino_id])
+    solicitante = relationship("Empleado")
+    detalles = relationship("DetalleTransferencia", back_populates="transferencia")
+
+
+class DetalleTransferencia(Base):
+    """Details of inventory transfers - Detalles de transferencias de inventario"""
+    __tablename__ = "inv_detalle_transferencia"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    transferencia_id = Column(UUID(as_uuid=True), ForeignKey("inv_transferencia.id"), nullable=False)
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
+    
+    # Item details
+    cantidad = Column(Integer, nullable=False)
+    costo_unitario = Column(Numeric(15, 4))
+    subtotal = Column(Numeric(15, 2), nullable=False)
+    
+    # Tracking
+    cantidad_transferida = Column(Integer, default=0)  # Quantity actually transferred
+    cantidad_pendiente = Column(Integer, default=0)   # Quantity still pending transfer
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    transferencia = relationship("TransferenciaInventario", back_populates="detalles")
+    producto = relationship("Producto")

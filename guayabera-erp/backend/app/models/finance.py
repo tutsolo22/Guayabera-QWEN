@@ -255,3 +255,88 @@ class PeriodoContable(Base):
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class CuentaBancaria(Base):
+    """Bank accounts for the company"""
+    __tablename__ = "fin_cuenta_bancaria"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Basic information
+    nombre = Column(String(200), nullable=False)  # e.g., "Cuenta de operación BBVA"
+    banco = Column(String(100), nullable=False)  # e.g., "BBVA", "Banamex"
+    numero_cuenta = Column(String(50), unique=True, nullable=False)  # Account number
+    clabe = Column(String(18), unique=True)  # CLABE interbank key
+    tipo_cuenta = Column(String(50))  # checking, savings, investment
+    moneda = Column(String(3), default="MXN")  # Currency
+    
+    # Balance information
+    saldo_actual = Column(Numeric(15, 2), default=0)
+    saldo_disponible = Column(Numeric(15, 2), default=0)
+    
+    # Accounting linkage
+    cuenta_contable_id = Column(UUID(as_uuid=True), ForeignKey("cont_cuenta.id"))  # Related accounting account
+    
+    # Status
+    activa = Column(Boolean, default=True)
+    fecha_alta = Column(Date)
+    
+    # Metadata
+    descripcion = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    cuenta_contable = relationship("CuentaContable")
+
+
+class Transaccion(Base):
+    """Financial transactions"""
+    __tablename__ = "fin_transaccion"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Transaction identification
+    folio = Column(String(50), unique=True)  # Transaction folio
+    tipo = Column(String(50), nullable=False)  # income, expense, transfer, adjustment
+    sub_tipo = Column(String(50))  # rent, utilities, salary, etc.
+    
+    # Amount and currency
+    monto = Column(Numeric(15, 2), nullable=False)
+    moneda = Column(String(3), default="MXN")
+    tipo_cambio = Column(Numeric(10, 6), default=1.0)  # Exchange rate if applicable
+    
+    # Dates
+    fecha = Column(Date, nullable=False)
+    fecha_valor = Column(Date)  # Value date for the transaction
+    
+    # Related accounts
+    cuenta_origen_id = Column(UUID(as_uuid=True), ForeignKey("fin_cuenta_bancaria.id"))
+    cuenta_destino_id = Column(UUID(as_uuid=True), ForeignKey("fin_cuenta_bancaria.id"))
+    
+    # Accounting linkage
+    poliza_id = Column(UUID(as_uuid=True), ForeignKey("cont_poliza.id"))  # Related journal entry
+    partida_id = Column(UUID(as_uuid=True), ForeignKey("cont_poliza_detalle.id"))  # Related journal entry line
+    
+    # References
+    descripcion = Column(Text, nullable=False)
+    referencia = Column(String(100))  # External reference
+    documento_soporte = Column(String(100))  # Invoice number, receipt number, etc.
+    
+    # Status
+    estado = Column(String(20), default="registrada")  # registrada, autorizada, conciliada, cancelada
+    fecha_autorizacion = Column(DateTime(timezone=True))
+    autorizado_por = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    
+    # Metadata
+    creado_por = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    cuenta_origen = relationship("CuentaBancaria", foreign_keys=[cuenta_origen_id])
+    cuenta_destino = relationship("CuentaBancaria", foreign_keys=[cuenta_destino_id])
+    poliza = relationship("PolizaContable")
+    partida = relationship("MovimientoPoliza")
+    autorizado_por_usuario = relationship("Usuario", foreign_keys=[autorizado_por])
+    creado_por_usuario = relationship("Usuario", foreign_keys=[creado_por])

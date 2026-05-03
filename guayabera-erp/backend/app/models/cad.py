@@ -224,7 +224,7 @@ class HistoricoDiseno(Base):
     campos_modificados = Column(JSONB)  # Which fields were modified
     
     # Who made the change
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from auth_usuario to seg_usuario
     
     # Timestamps
     fecha_cambio = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

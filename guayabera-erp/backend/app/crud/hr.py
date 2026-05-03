@@ -7,11 +7,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from uuid import UUID
+from datetime import date
 
 from app.models.hr import (
     Departamento, Puesto, Empleado, Contrato, Horario, Asistencia, 
-    Vacacion, Incapacidad, SolicitudEquipo, Anuncio, VistaAnuncio
+    Vacacion, Incapacidad, SolicitudEquipo, Anuncio, VistaAnuncio, EmpleadoPuesto
 )
+from app.models.payroll import Nomina, PeriodoNomina, Percepcion, Deduccion  # Cambiar PeriodoPago a PeriodoNomina
 from app.schemas.hr import (
     DepartamentoCreate, DepartamentoUpdate, DepartamentoResponse,
     PuestoCreate, PuestoUpdate, PuestoResponse,
@@ -23,7 +25,14 @@ from app.schemas.hr import (
     IncapacidadCreate, IncapacidadUpdate, IncapacidadResponse,
     SolicitudEquipoCreate, SolicitudEquipoUpdate, SolicitudEquipoResponse,
     AnuncioCreate, AnuncioUpdate, AnuncioResponse,
-    VistaAnuncioCreate, VistaAnuncioResponse
+    VistaAnuncioCreate, VistaAnuncioResponse,
+    EmpleadoPuestoCreate, EmpleadoPuestoUpdate, EmpleadoPuestoResponse
+)
+from app.schemas.payroll import (  # Añadir importaciones de esquemas de nómina
+    NominaCreate, NominaUpdate, NominaResponse,
+    PeriodoNominaCreate, PeriodoNominaUpdate, PeriodoNominaResponse,  # Cambiar PeriodoPago por PeriodoNomina
+    PercepcionCreate, PercepcionUpdate, PercepcionResponse,
+    DeduccionCreate, DeduccionUpdate, DeduccionResponse
 )
 
 
@@ -751,23 +760,23 @@ def delete_nomina(db: Session, nomina_id: UUID) -> bool:
 # PAYROLL PERIOD CRUD
 # ============================================================================
 
-def create_periodo_pago(db: Session, periodo_data: PeriodoPagoCreate) -> PeriodoPago:
+def create_periodo_pago(db: Session, periodo_data: PeriodoNominaCreate) -> PeriodoNomina:
     """Create a new payroll period"""
-    db_periodo = PeriodoPago(**periodo_data.model_dump())
+    db_periodo = PeriodoNomina(**periodo_data.model_dump())
     db.add(db_periodo)
     db.commit()
     db.refresh(db_periodo)
     return db_periodo
 
 
-def get_periodo_pago(db: Session, periodo_id: UUID) -> Optional[PeriodoPago]:
+def get_periodo_pago(db: Session, periodo_id: UUID) -> Optional[PeriodoNomina]:
     """Get a payroll period by ID"""
-    return db.query(PeriodoPago).filter(PeriodoPago.id == periodo_id).first()
+    return db.query(PeriodoNomina).filter(PeriodoNomina.id == periodo_id).first()
 
 
-def get_periodo_pago_by_codigo(db: Session, codigo: str) -> Optional[PeriodoPago]:
+def get_periodo_pago_by_codigo(db: Session, codigo: str) -> Optional[PeriodoNomina]:
     """Get a payroll period by code"""
-    return db.query(PeriodoPago).filter(PeriodoPago.codigo == codigo).first()
+    return db.query(PeriodoNomina).filter(PeriodoNomina.codigo == codigo).first()
 
 
 def get_periodos_pago(
@@ -776,14 +785,14 @@ def get_periodos_pago(
     limit: int = 100,
     tipo_periodo: Optional[str] = None,
     cerrado: Optional[bool] = None
-) -> List[PeriodoPago]:
+) -> List[PeriodoNomina]:
     """Get list of payroll periods, optionally filtered"""
-    query = db.query(PeriodoPago)
+    query = db.query(PeriodoNomina)
     
     if tipo_periodo:
-        query = query.filter(PeriodoPago.tipo_periodo == tipo_periodo)
+        query = query.filter(PeriodoNomina.tipo_periodo == tipo_periodo)
     if cerrado is not None:
-        query = query.filter(PeriodoPago.cerrado == cerrado)
+        query = query.filter(PeriodoNomina.cerrado == cerrado)
     
     return query.offset(skip).limit(limit).all()
 
@@ -791,8 +800,8 @@ def get_periodos_pago(
 def update_periodo_pago(
     db: Session, 
     periodo_id: UUID, 
-    periodo_data: PeriodoPagoUpdate
-) -> Optional[PeriodoPago]:
+    periodo_data: PeriodoNominaUpdate
+) -> Optional[PeriodoNomina]:
     """Update a payroll period"""
     db_periodo = get_periodo_pago(db, periodo_id)
     if db_periodo:

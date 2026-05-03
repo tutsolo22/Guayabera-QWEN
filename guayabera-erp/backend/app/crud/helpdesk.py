@@ -14,7 +14,7 @@ from app.models.helpdesk import (
 )
 from app.schemas.helpdesk import (
     TicketSoporteCreate, TicketSoporteUpdate,
-    ComentarioTicketCreate,
+    ComentarioTicketCreate, ComentarioTicketUpdate,
     HistorialEstadoCreate,
     CategoriaSoporteCreate, CategoriaSoporteUpdate,
     SLACreate, SLAUpdate,

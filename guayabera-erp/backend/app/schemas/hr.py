@@ -4,8 +4,8 @@ Specialized for textile manufacturing companies
 """
 
 from pydantic import BaseModel, Field, UUID4
-from typing import List, Optional
-from datetime import datetime, date
+from typing import List, Optional, Dict, Any
+from datetime import datetime, date, time
 from decimal import Decimal
 import uuid
 
@@ -744,6 +744,111 @@ class SolicitudEquipoUpdate(BaseModel):
 
 
 class SolicitudEquipoResponse(SolicitudEquipoBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DepartamentoBase(BaseModel):
+    codigo: str = Field(..., max_length=20, description="Código único del departamento")
+    nombre: str = Field(..., max_length=100, description="Nombre del departamento")
+    descripcion: Optional[str] = Field(None, description="Descripción del departamento")
+    jefe_departamento_id: Optional[UUID4] = Field(None, description="ID del jefe del departamento")
+    activo: bool = Field(default=True, description="¿Departamento activo?")
+
+
+class DepartamentoCreate(DepartamentoBase):
+    pass
+
+
+class DepartamentoUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=100)
+    descripcion: Optional[str] = None
+    jefe_departamento_id: Optional[UUID4] = None
+    activo: Optional[bool] = None
+
+
+class DepartamentoResponse(DepartamentoBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class HorarioBase(BaseModel):
+    codigo: str = Field(..., max_length=20, description="Código único del horario")
+    nombre: str = Field(..., max_length=100, description="Nombre del horario")
+    descripcion: Optional[str] = Field(None, description="Descripción del horario")
+    hora_entrada: time = Field(..., description="Hora de entrada")
+    hora_salida: time = Field(..., description="Hora de salida")
+    hora_entrada_comida: Optional[time] = Field(None, description="Hora de entrada después de comida")
+    hora_salida_comida: Optional[time] = Field(None, description="Hora de salida para comida")
+    lunes: bool = Field(default=True, description="¿Labora el lunes?")
+    martes: bool = Field(default=True, description="¿Labora el martes?")
+    miercoles: bool = Field(default=True, description="¿Labora el miércoles?")
+    jueves: bool = Field(default=True, description="¿Labora el jueves?")
+    viernes: bool = Field(default=True, description="¿Labora el viernes?")
+    sabado: bool = Field(default=False, description="¿Labora el sábado?")
+    domingo: bool = Field(default=False, description="¿Labora el domingo?")
+    activo: bool = Field(default=True, description="¿Horario activo?")
+
+
+class HorarioCreate(HorarioBase):
+    pass
+
+
+class HorarioUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=100)
+    descripcion: Optional[str] = None
+    hora_entrada: Optional[time] = None
+    hora_salida: Optional[time] = None
+    hora_entrada_comida: Optional[time] = None
+    hora_salida_comida: Optional[time] = None
+    lunes: Optional[bool] = None
+    martes: Optional[bool] = None
+    miercoles: Optional[bool] = None
+    jueves: Optional[bool] = None
+    viernes: Optional[bool] = None
+    sabado: Optional[bool] = None
+    domingo: Optional[bool] = None
+    activo: Optional[bool] = None
+
+
+class HorarioResponse(HorarioBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class EmpleadoHorarioBase(BaseModel):
+    empleado_id: UUID4
+    horario_id: UUID4
+    fecha_inicio: date = Field(..., description="Fecha de inicio de la asignación")
+    fecha_fin: Optional[date] = Field(None, description="Fecha de fin de la asignación")
+    estado: str = Field(default="activo", description="Estado de la asignación")
+
+
+class EmpleadoHorarioCreate(EmpleadoHorarioBase):
+    pass
+
+
+class EmpleadoHorarioUpdate(BaseModel):
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+    estado: Optional[str] = None
+
+
+class EmpleadoHorarioResponse(EmpleadoHorarioBase):
     id: UUID4
     created_at: datetime
     updated_at: Optional[datetime] = None

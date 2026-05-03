@@ -335,3 +335,42 @@ class SecurityHeaders:
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Add the FastAPI router for compliance
+from fastapi import APIRouter, Depends
+from app.core.database import get_db
+from app.core.security import get_current_user
+
+compliance_router = APIRouter(tags=["compliance"])
+
+@compliance_router.get("/")
+def compliance_check():
+    """Basic compliance check endpoint"""
+    return {
+        "status": "compliant",
+        "message": "Compliance measures are active",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@compliance_router.get("/audit-log")
+def get_audit_log(
+    current_user: dict = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Get audit logs for compliance review"""
+    # Return recent audit logs for review
+    audit_logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(50).all()
+    return {
+        "audit_logs": audit_logs,
+        "total_count": len(audit_logs)
+    }
+
+@compliance_router.get("/data-retention")
+def check_data_retention(
+    current_user: dict = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Check data retention compliance"""
+    compliance_measures = ComplianceMeasures()
+    return compliance_measures.check_data_retention(db)

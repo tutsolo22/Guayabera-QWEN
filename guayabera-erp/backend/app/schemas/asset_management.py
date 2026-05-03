@@ -268,3 +268,118 @@ class HistorialAsignacionResponse(HistorialAsignacionBase):
 
     class Config:
         from_attributes = True
+
+
+# ============================================================================
+# PROVIDER AND CONTRACT SCHEMAS
+# ============================================================================
+
+class ProveedorActivoBase(BaseModel):
+    nombre: str = Field(..., max_length=200, description="Nombre del proveedor de activos")
+    contacto_nombre: Optional[str] = Field(None, max_length=100, description="Nombre del contacto principal")
+    contacto_email: Optional[str] = Field(None, max_length=100, description="Email del contacto principal")
+    contacto_telefono: Optional[str] = Field(None, max_length=20, description="Teléfono del contacto principal")
+    direccion: Optional[str] = Field(None, max_length=255, description="Dirección del proveedor")
+    sitio_web: Optional[str] = Field(None, max_length=255, description="Sitio web del proveedor")
+    activo: bool = Field(default=True, description="¿Está activo el proveedor?")
+
+
+class ProveedorActivoCreate(ProveedorActivoBase):
+    pass
+
+
+class ProveedorActivoUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, max_length=200)
+    contacto_nombre: Optional[str] = Field(None, max_length=100)
+    contacto_email: Optional[str] = Field(None, max_length=100)
+    contacto_telefono: Optional[str] = Field(None, max_length=20)
+    direccion: Optional[str] = Field(None, max_length=255)
+    sitio_web: Optional[str] = Field(None, max_length=255)
+    activo: Optional[bool] = None
+
+
+class ProveedorActivoResponse(ProveedorActivoBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ContratoMantenimientoBase(BaseModel):
+    proveedor_id: UUID4 = Field(..., description="ID del proveedor del contrato")
+    numero_contrato: str = Field(..., max_length=100, description="Número único del contrato")
+    descripcion: Optional[str] = Field(None, description="Descripción del contrato")
+    fecha_inicio: date = Field(..., description="Fecha de inicio del contrato")
+    fecha_fin: date = Field(..., description="Fecha de vencimiento del contrato")
+    costo_anual: Optional[Decimal] = Field(None, description="Costo anual del contrato")
+    cobertura: Optional[str] = Field(None, description="Qué cubre el contrato")
+    condiciones_especiales: Optional[str] = Field(None, description="Condiciones especiales del contrato")
+    archivo_url: Optional[str] = Field(None, max_length=255, description="URL al documento del contrato")
+    activo: bool = Field(default=True, description="¿Está activo el contrato?")
+
+
+class ContratoMantenimientoCreate(ContratoMantenimientoBase):
+    pass
+
+
+class ContratoMantenimientoUpdate(BaseModel):
+    descripcion: Optional[str] = None
+    fecha_inicio: Optional[date] = None
+    fecha_fin: Optional[date] = None
+    costo_anual: Optional[Decimal] = None
+    cobertura: Optional[str] = None
+    condiciones_especiales: Optional[str] = None
+    archivo_url: Optional[str] = Field(None, max_length=255)
+    activo: Optional[bool] = None
+
+
+class ContratoMantenimientoResponse(ContratoMantenimientoBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============================================================================
+# SPECIALIZED SCHEMAS FOR ASSET MANAGEMENT
+# ============================================================================
+
+class MantenimientoRequest(BaseModel):
+    activo_id: UUID4
+    tipo_mantenimiento: str
+    descripcion: str
+    fecha_programada: date
+    costo_estimado: Optional[Decimal] = None
+    responsable_id: Optional[UUID4] = None
+    prioridad: Optional[str] = Field(default="media", description="Prioridad del mantenimiento")
+
+
+class MantenimientoResponse(BaseModel):
+    id: UUID4
+    activo_id: UUID4
+    tipo_mantenimiento: str
+    estado: str
+    fecha_programada: date
+    fecha_realizacion: Optional[date] = None
+    costo_real: Optional[Decimal] = None
+    tecnico_asignado: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class DepreciacionResponse(BaseModel):
+    activo_id: UUID4
+    activo_nombre: str
+    metodo_depreciacion: str
+    valor_adquisicion: Decimal
+    valor_actual: Decimal
+    depreciacion_acumulada: Decimal
+    vida_util_anios: int
+    anios_transcurridos: int
+    tasa_depreciacion: float

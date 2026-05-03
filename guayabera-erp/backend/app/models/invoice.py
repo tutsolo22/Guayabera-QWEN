@@ -314,7 +314,7 @@ class ConceptoFactura(Base):
     objeto_imp = Column(String(2), default="02")  # Tax object: 01=No objeto, 02=Exento, 03=Sujeto
     
     # Related products
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("inv_producto.id"))  # Link to inventory product
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"))  # Changed from inv_producto to alm_producto - Link to inventory product
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -323,7 +323,7 @@ class ConceptoFactura(Base):
     
     # Relationships
     comprobante = relationship("ComprobanteFiscal", back_populates="conceptos")
-    producto = relationship("Producto")
+    producto = relationship("Producto")  # Changed from Producto to match correct model
 
 
 class ImpuestoConcepto(Base):
@@ -394,6 +394,96 @@ class ComplementoPago(Base):
     documento_relacionado = relationship("ComprobanteFiscal", foreign_keys=[documento_relacionado_id])
 
 
+class ComplementoFiscal(Base):
+    """Fiscal complement - Complemento fiscal para CFDI"""
+    __tablename__ = "inv_complemento_fiscal"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comprobante_id = Column(UUID(as_uuid=True), ForeignKey("inv_comprobante_fiscal.id"), nullable=False)
+    
+    # Complement identification
+    tipo_complemento = Column(SQLEnum(TipoComplemento), nullable=False)  # Type of fiscal complement
+    nombre = Column(String(100), nullable=False)  # Name of the complement
+    descripcion = Column(Text)  # Description of the complement
+    
+    # Content
+    contenido = Column(JSONB)  # Content of the complement in JSON format
+    version = Column(String(10))  # Version of the complement
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    comprobante = relationship("ComprobanteFiscal", back_populates="complementos")
+
+
+class CancelacionCFDI(Base):
+    """CFDI cancellation record - Registro de cancelación de CFDI"""
+    __tablename__ = "inv_cancelacion_cfdi"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comprobante_id = Column(UUID(as_uuid=True), ForeignKey("inv_comprobante_fiscal.id"), nullable=False)
+    
+    # Cancellation details
+    fecha_cancelacion = Column(DateTime(timezone=True), server_default=func.now())
+    motivo_cancelacion = Column(String(200))  # Reason for cancellation
+    folio_sustitucion = Column(String(50))  # Substitution folio (for replacements)
+    
+    # Status
+    estado_cancelacion = Column(String(20), default="solicitada")  # solicitada, aceptada, rechazada
+    uuid_acuse = Column(String(36))  # UUID of acceptance notice from SAT
+    archivo_acuse = Column(String(255))  # Path to acceptance file
+    
+    # Metadata
+    notas = Column(Text)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    comprobante = relationship("ComprobanteFiscal", back_populates="cancelaciones")
+
+
+class ValidacionRFC(Base):
+    """RFC validation record - Registro de validación de RFC"""
+    __tablename__ = "inv_validacion_rfc"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    rfc = Column(String(13), unique=True, nullable=False, index=True)  # RFC for validation
+    
+    # Validation results
+    nombre_razon_social = Column(String(250))
+    fecha_validacion = Column(DateTime(timezone=True), server_default=func.now())
+    estatus_general = Column(String(50))  # Active, cancelled, etc.
+    estatus_contribuyente = Column(String(50))
+    regimen_fiscal = Column(String(100))
+    codigo_postal = Column(String(10))
+    
+    # Blacklist status
+    en_lista_negra = Column(Boolean, default=False)
+    motivo_lista_negra = Column(Text)
+    
+    # Validation metadata
+    fuente_datos = Column(String(100))  # Source of validation data
+    ultima_verificacion = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    comprobante_emitidos = relationship("ComprobanteFiscal", foreign_keys="ComprobanteFiscal.emisor_id")
+    comprobante_recibidos = relationship("ComprobanteFiscal", foreign_keys="ComprobanteFiscal.receptor_id")
+
+
 # Add relationships to ComprobanteFiscal
 ComprobanteFiscal.conceptos = relationship("ConceptoFactura", back_populates="comprobante")
 ConceptoFactura.impuestos = relationship("ImpuestoConcepto", back_populates="concepto")
+ComprobanteFiscal.cancelaciones = relationship("CancelacionCFDI", back_populates="comprobante")

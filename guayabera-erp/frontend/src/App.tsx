@@ -34,6 +34,7 @@ import SalesDashboard from './components/pages/sales/SalesDashboard';
 import ClientLevelPricing from './components/pages/sales/ClientLevelPricing';
 import AdvancePaymentOrders from './components/pages/sales/AdvancePaymentOrders';
 import CreditNotes from './components/pages/sales/CreditNotes';
+import SalesConfiguration from './components/pages/sales/SalesConfiguration';
 
 // Inventory Page
 import InventoryDashboard from './components/pages/inventory/InventoryDashboard';
@@ -185,6 +186,7 @@ const App: React.FC = () => {
         <Route path="sales/client-level-pricing" element={<ClientLevelPricing />} />
         <Route path="sales/advance-payment-orders" element={<AdvancePaymentOrders />} />
         <Route path="sales/credit-notes" element={<CreditNotes />} />
+        <Route path="sales/sales-configuration" element={<SalesConfiguration />} />
         
         {/* Inventory */}
         <Route path="inventory" element={<InventoryDashboard />} />

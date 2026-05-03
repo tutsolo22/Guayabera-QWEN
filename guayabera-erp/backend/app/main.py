@@ -1,120 +1,96 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-
+from app.api.v1 import router
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.middleware.cache_middleware import CacheMiddleware
+from app.services.notification_service import start_notification_cleanup_scheduler
+from app.monitoring.health_checks import health_router
+from app.security.compliance import compliance_router
+from app.ai.document_ocr import ocr_router
+from app.integration.bank_integration import bank_integration_router
+from app.services.permission_initializer import initialize_all_permissions
+from sqlalchemy.orm import sessionmaker
+import asyncio
 
-# Import routers
-from app.api.v1.auth import router as auth_router
-from app.api.v1.admin import router as admin_router
-from app.api.v1.finance import router as finance_router
-from app.api.v1.finance.accounting_monitoring import router as monitoring_router
-from app.api.v1.agents import router as agents_router
-from app.api.v1.supply_chain import router as supply_chain_router
-from app.api.v1.production.router import router as production_router
-from app.api.v1.hr.router import router as hr_router
-from app.api.v1.sales.router import router as sales_router
-from app.api.v1.cad.router import router as cad_router
-from app.api.v1.size_chart.router import router as size_chart_router
-from app.api.v1.helpdesk.router import router as helpdesk_router
-from app.api.v1.requisitions.router import router as requisitions_router
-from app.api.v1.notifications.router import router as notifications_router
-from app.api.v1.quality_control.router import router as quality_control_router
-from app.api.v1.advanced_accounting.router import router as advanced_accounting_router
-from app.api.v1.logistics.router import router as logistics_router
-from app.api.v1.crm.router import router as crm_router
-from app.api.v1.project_management.router import router as project_management_router
-from app.api.v1.asset_management.router import router as asset_management_router
-from app.api.v1.business_intelligence.router import router as business_intelligence_router
-from app.api.v1.invoice.router import router as invoice_router
-from app.api.v1.email_config.router import router as email_config_router
-from app.api.v1.payroll.router import router as payroll_router
-from app.api.v1.reports.router import router as reports_router
-from app.api.v1.permissions.router import router as permissions_router
-from app.api.v1.ai_assistant.router import router as ai_assistant_router
+# Importar modelos para que SQLAlchemy los registre
+from app.models.admin import *
+from app.models.hr import *
+from app.models.finance import *
+from app.models.supply_chain import *
+from app.models.production import *
+from app.models.inventory import *
+from app.models.sales import *
+from app.models.invoice import *
+from app.models.email_config import *
+from app.models.payroll import *
+from app.models.agents import *
+from app.models.cad import *
+from app.models.size_chart import *
+from app.models.helpdesk import *
+from app.models.requisitions import *
+from app.models.notifications import *
+from app.models.quality_control import *
+from app.models.advanced_accounting import *
+from app.models.logistics import *
+from app.models.crm import *
+from app.models.project_management import *
+from app.models.asset_management import *
+from app.models.business_intelligence import *
+from app.models.reports import *
+from app.models.permissions import *
+from app.models.security import *
+from app.models.mrp import *
+from app.models.maintenance import *
+from app.models.ai_assistant import *
 
-# Context manager for lifespan events
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup and shutdown events"""
-    # Startup: Create database tables
-    Base.metadata.create_all(bind=engine)
-    print("✅ Database tables created")
-    yield
-    # Shutdown: Cleanup if needed
-    print("👋 Shutting down GuayaberaERP")
+# Crear todas las tablas
+Base.metadata.create_all(bind=engine)
 
-# Create FastAPI instance
+# Iniciar el planificador de limpieza de notificaciones
+start_notification_cleanup_scheduler()
+
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    version=settings.VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
+    title=settings.APP_NAME,
+    description="ERP para la industria de la confección, con módulos de administración, contabilidad, recursos humanos, ventas, inventario, producción, cadena de suministro, calidad, logística, CRM, inteligencia de negocios, agentes de IA, diseño asistido y más.",
+    version=settings.API_V1_STR
 )
 
-# Set all CORS enabled origins
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-# Add Cache Middleware
+# Configurar CORS
 app.add_middleware(
-    CacheMiddleware,
-    cache_ttl=300,  # 5 minutes
-    exclude_patterns=["/api/v1/auth", "/api/v1/invoice", "/api/v1/payroll"]  # Don't cache auth and transactional endpoints
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Health check endpoint
-@app.get("/api/health")
-def health_check():
-    return {"status": "healthy", "service": "guayabera-erp-backend"}
+# Agregar middleware de caché
+app.add_middleware(CacheMiddleware)
 
-# Root endpoint
+# Incluir routers
+app.include_router(router, prefix=settings.API_V1_STR)
+app.include_router(health_router, prefix="/health", tags=["health"])
+app.include_router(compliance_router, prefix="/compliance", tags=["compliance"])
+app.include_router(ocr_router, prefix="/ocr", tags=["ocr"])
+app.include_router(bank_integration_router, prefix="/bank-integration", tags=["bank-integration"])
+
+@app.on_event("startup")
+async def startup_event():
+    # Inicializar permisos
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+    try:
+        initialize_all_permissions(db)
+    finally:
+        db.close()
+    
+    print("Aplicación iniciada correctamente")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("Aplicación cerrada correctamente")
+
 @app.get("/")
 def read_root():
-    return {
-        "message": "GuayaberaERP API",
-        "version": settings.VERSION,
-        "status": "running"
-    }
-
-# API Routes grouped by module
-app.include_router(auth_router, prefix=settings.API_V1_STR, tags=["Authentication"])
-app.include_router(admin_router, prefix=settings.API_V1_STR, tags=["Administration"])
-app.include_router(finance_router, prefix=settings.API_V1_STR, tags=["Finance"])
-app.include_router(monitoring_router, prefix=settings.API_V1_STR, tags=["Accounting Monitoring"])
-app.include_router(agents_router, prefix=settings.API_V1_STR, tags=["Local Agents"])
-app.include_router(supply_chain_router, prefix=settings.API_V1_STR, tags=["Supply Chain"])
-app.include_router(production_router, prefix=settings.API_V1_STR, tags=["Production"])
-app.include_router(hr_router, prefix=settings.API_V1_STR, tags=["Human Resources"])
-app.include_router(sales_router, prefix=settings.API_V1_STR, tags=["Sales"])
-app.include_router(cad_router, prefix=settings.API_V1_STR, tags=["CAD Design"])
-app.include_router(size_chart_router, prefix=settings.API_V1_STR, tags=["Size Charts"])
-app.include_router(helpdesk_router, prefix=settings.API_V1_STR, tags=["Helpdesk"])
-app.include_router(requisitions_router, prefix=settings.API_V1_STR, tags=["Requisitions"])
-app.include_router(notifications_router, prefix=settings.API_V1_STR, tags=["Notifications"])
-app.include_router(quality_control_router, prefix=settings.API_V1_STR, tags=["Quality Control"])
-app.include_router(advanced_accounting_router, prefix=settings.API_V1_STR, tags=["Advanced Accounting"])
-app.include_router(logistics_router, prefix=settings.API_V1_STR, tags=["Logistics"])
-app.include_router(crm_router, prefix=settings.API_V1_STR, tags=["CRM"])
-app.include_router(project_management_router, prefix=settings.API_V1_STR, tags=["Project Management"])
-app.include_router(asset_management_router, prefix=settings.API_V1_STR, tags=["Asset Management"])
-app.include_router(business_intelligence_router, prefix=settings.API_V1_STR, tags=["Business Intelligence"])
-app.include_router(invoice_router, prefix=settings.API_V1_STR, tags=["Electronic Invoicing"])
-app.include_router(email_config_router, prefix=settings.API_V1_STR, tags=["Email Configuration"])
-app.include_router(payroll_router, prefix=settings.API_V1_STR, tags=["Electronic Payroll"])
-app.include_router(reports_router, prefix=settings.API_V1_STR, tags=["Reports"])
-app.include_router(permissions_router, prefix=settings.API_V1_STR, tags=["Permissions"])
-app.include_router(ai_assistant_router, prefix=settings.API_V1_STR, tags=["AI Assistant"])
-
-# Run the application
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    return {"message": f"Bienvenido a {settings.APP_NAME}", "version": settings.API_V1_STR}

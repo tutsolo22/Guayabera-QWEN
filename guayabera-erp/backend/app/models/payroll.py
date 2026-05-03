@@ -116,7 +116,6 @@ class TipoDeduccion(enum.Enum):
     APORTACION_VOLUNTARIA_VIVIENDA = "039"
     APORTACION_VOLUNTARIA_AFORE = "040"
     APORTACION_VOLUNTARIA_SUBSIDIO = "041"
-    APORTACION_VOLUNTARIA_OTROS = "042"
     APORTACION_VOLUNTARIA_SUBSIDIO_EMPLEO = "043"
     APORTACION_VOLUNTARIA_SUBSIDIO_CAPACITACION = "044"
     APORTACION_VOLUNTARIA_SUBSIDIO_VIVIENDA = "045"
@@ -199,64 +198,54 @@ class Nomina(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Document identification
-    folio = Column(String(50), unique=True, nullable=False, index=True)  # NOM-EMP-001-2023
-    numero_empleado = Column(String(30), nullable=False)  # Employee number
-    fecha_pago = Column(Date, nullable=False)  # Date of payment
+    # Receipt identification
+    folio = Column(String(50), unique=True, nullable=False, index=True)  # EJ: NOM-2023-0000001
+    descripcion = Column(Text)
     
-    # Employee
+    # Employee and period
     empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+    periodo_id = Column(UUID(as_uuid=True), ForeignKey("nom_periodo.id"), nullable=False)  # Updated to nom_periodo
     
-    # Period
-    periodo_id = Column(UUID(as_uuid=True), ForeignKey("nom_periodo.id"), nullable=False)
+    # Payroll type and dates
+    tipo_nomina = Column(SQLEnum(TipoNomina), default=TipoNomina.ORDINARIA)
+    fecha_pago = Column(Date, nullable=False)
+    fecha_inicial_pago = Column(Date, nullable=False)  # Initial date of payment period
+    fecha_final_pago = Column(Date, nullable=False)    # Final date of payment period
     
-    # Payroll details
-    tipo_nomina = Column(SQLEnum(TipoNomina), nullable=False)
-    fecha_inicio_pago = Column(Date, nullable=False)  # Start date of payment period
-    fecha_fin_pago = Column(Date, nullable=False)  # End date of payment period
+    # Financial information
+    percepciones_totales = Column(Numeric(15, 2), default=0)  # Total perceptions
+    horas_extras_pagadas = Column(Numeric(15, 2), default=0)  # Paid overtime hours
+    bonos_pagados = Column(Numeric(15, 2), default=0)         # Bonuses paid
+    deducciones_totales = Column(Numeric(15, 2), default=0)   # Total deductions
+    isr_retencion = Column(Numeric(15, 2), default=0)         # Income tax retention
+    seguridad_social_descuento = Column(Numeric(15, 2), default=0)  # Social security discount
+    infonavit_descuento = Column(Numeric(15, 2), default=0)         # INFONAVIT discount
+    otros_descuentos = Column(Numeric(15, 2), default=0)            # Other discounts
     
-    # Totals
-    percepciones_total_gravado = Column(Numeric(12, 2), default=0.00)
-    percepciones_total_exento = Column(Numeric(12, 2), default=0.00)
-    deducciones_total_otras = Column(Numeric(12, 2), default=0.00)
-    deducciones_total_impuestos = Column(Numeric(12, 2), default=0.00)
-    total_percepciones = Column(Numeric(12, 2), default=0.00)
-    total_deducciones = Column(Numeric(12, 2), default=0.00)
-    total_otros_pagos = Column(Numeric(12, 2), default=0.00)
-    neto_a_pagar = Column(Numeric(12, 2), default=0.00)
+    # Subsidies and other payments
+    subsidio_causado = Column(Numeric(15, 2), default=0)      # Caused subsidy
+    subsidio_entregado = Column(Numeric(15, 2), default=0)    # Delivered subsidy
+    total_otro_pago = Column(Numeric(15, 2), default=0)       # Total other payment
     
-    # Fiscal data
-    tipo_contrato = Column(String(100))  # Type of contract
-    tipo_regimen = Column(String(10))  # SAT regime code
-    regimen_contratacion = Column(String(100))  # Contract regime
-    numero_seguridad_social = Column(String(15))  # Social security number
-    riesgo_puesto = Column(String(10))  # Risk level of position
-    banco = Column(String(50))  # Bank code
-    fecha_inicio_rel_laboral = Column(Date)  # Start date of employment
-    antiguedad_bimestres = Column(Integer)  # Antiquity in bimesters
-    salario_base_cotizacion = Column(Numeric(10, 2))  # Base salary for contributions
-    salario_diario_integrado = Column(Numeric(10, 2))  # Integrated daily salary
+    # Final calculation
+    importe_total_neto = Column(Numeric(15, 2), nullable=False)  # Net total amount
     
-    # Facturama integration
-    folio_fiscal = Column(String(36))  # SAT UUID (after stamping)
-    facturama_id = Column(String(50))  # ID from Facturama API
-    estatus_facturama = Column(String(20))  # Status from Facturama
-    estatus_sat = Column(String(20))  # Status from SAT
-    cadena_original = Column(Text)  # Original string from SAT
-    sello_digital = Column(String(250))  # Digital seal
-    sello_sat = Column(String(250))  # SAT seal
-    no_certificado = Column(String(20))  # Certificate number
-    no_certificado_sat = Column(String(20))  # SAT certificate number
+    # SAT and fiscal information (Mexican tax system)
+    uuid_cfdi = Column(String(36))               # UUID of the CFDI
+    folio_fiscal = Column(String(36))            # Fiscal folio
+    fecha_timbrado = Column(DateTime(timezone=True))  # Date of stamping
+    sello_digital_cfdi = Column(Text)            # Digital seal of the CFDI
+    cadena_original = Column(Text)               # Original chain
     
     # Status
-    estado = Column(String(20), default="pendiente_timbrado")  # State of the payroll receipt
-    
-    # Files
-    ruta_pdf = Column(String(255))  # Path to PDF file
-    ruta_xml = Column(String(255))  # Path to XML file
+    estado = Column(String(20), default="emitida")  # emitted, cancelada
+    fecha_cancelacion = Column(DateTime(timezone=True))  # Cancellation date
+    motivo_cancelacion = Column(String(200))       # Cancellation reason
     
     # Metadata
     comentarios = Column(Text)
+    archivo_xml = Column(String(500))             # XML file path
+    archivo_pdf = Column(String(500))             # PDF file path
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -264,12 +253,10 @@ class Nomina(Base):
     deleted_at = Column(DateTime(timezone=True))
     
     # Relationships
-    empleado = relationship("Empleado")
-    periodo = relationship("PeriodoNomina", back_populates="nominas")
+    empleado = relationship("Empleado", back_populates="nominas")
+    periodo = relationship("PeriodoNomina", back_populates="nominas")  # Corrected from PeriodoPago to PeriodoNomina
     percepciones = relationship("Percepcion", back_populates="nomina")
     deducciones = relationship("Deduccion", back_populates="nomina")
-    incapacidades = relationship("Incapacidad", back_populates="nomina")
-    otros_pagos = relationship("OtroPago", back_populates="nomina")
 
 
 class Percepcion(Base):

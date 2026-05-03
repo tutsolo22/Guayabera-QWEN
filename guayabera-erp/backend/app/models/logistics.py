@@ -153,7 +153,7 @@ class InventarioUbicacion(Base):
     
     # Tracking
     fecha_ultima_revision = Column(Date)  # Last physical verification
-    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_lote_producto.id"))  # Batch if applicable
+    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto_lote.id"))  # Batch if applicable
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -162,7 +162,7 @@ class InventarioUbicacion(Base):
     # Relationships
     ubicacion = relationship("UbicacionAlmacen", back_populates="inventarios")
     producto = relationship("Producto")
-    lote = relationship("LoteProducto")
+    lote = relationship("ProductoLote")
 
 
 class MovimientoInventario(Base):
@@ -277,7 +277,7 @@ class DetalleEnvio(Base):
     descripcion = Column(Text)
     
     # Tracking
-    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_lote_producto.id"))  # Batch if applicable
+    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto_lote.id"))  # Batch if applicable
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -286,7 +286,7 @@ class DetalleEnvio(Base):
     # Relationships
     envio = relationship("Envio", back_populates="detalles")
     producto = relationship("Producto")
-    lote = relationship("LoteProducto")
+    lote = relationship("ProductoLote")
 
 
 class HistorialEnvio(Base):
@@ -301,7 +301,7 @@ class HistorialEnvio(Base):
     estado_nuevo = Column(SQLEnum(EstadoEnvio), nullable=False)
     descripcion = Column(Text)  # Description of the change
     fecha_cambio = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # User who made the change
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # User who made the change
     
     # Location during update (for tracking)
     ubicacion_gps = Column(String(50))  # GPS location when status changed

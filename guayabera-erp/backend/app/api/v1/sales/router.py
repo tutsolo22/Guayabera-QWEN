@@ -1,855 +1,776 @@
-"""
-Sales API Router
-Specialized for textile manufacturing companies
-"""
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.sales import (
-    ClienteCreate, ClienteUpdate, ClienteResponse,
-    DireccionEntregaCreate, DireccionEntregaUpdate, DireccionEntregaResponse,
-    AlmacenCreate, AlmacenUpdate, AlmacenResponse,
-    MovimientoInventarioCreate, MovimientoInventarioUpdate, MovimientoInventarioResponse,
-    TransferenciaInventarioCreate, TransferenciaInventarioUpdate, TransferenciaInventarioResponse,
-    DetalleTransferenciaCreate, DetalleTransferenciaUpdate, DetalleTransferenciaResponse,
-    PedidoCreate, PedidoUpdate, PedidoResponse,
-    DetallePedidoCreate, DetallePedidoUpdate, DetallePedidoResponse,
-    VentaCreate, VentaUpdate, VentaResponse,
-    PagoCreate, PagoUpdate, PagoResponse,
-    BusquedaAvanzadaCreate, BusquedaAvanzadaUpdate, BusquedaAvanzadaResponse
+    SalesConfigurationCreate,
+    SalesConfigurationUpdate,
+    SalesConfigurationResponse,
+    DiscountRuleCreate,
+    DiscountRuleUpdate,
+    DiscountRuleResponse,
+    LoyaltyProgramCreate,
+    LoyaltyProgramUpdate,
+    LoyaltyProgramResponse,
+    PriceListCreate,
+    PriceListUpdate,
+    PriceListResponse,
+    PriceListItemCreate,
+    PriceListItemUpdate,
+    PriceListItemResponse,
+    PriceListWithItemsResponse
 )
 from app.crud.sales import (
-    create_cliente, get_cliente, get_cliente_by_codigo, get_cliente_by_rfc,
-    get_clientes, update_cliente, delete_cliente,
-    create_direccion_entrega, get_direccion_entrega, get_direcciones_entrega_by_cliente,
-    update_direccion_entrega, delete_direccion_entrega,
-    create_almacen, get_almacen, get_almacen_by_codigo,
-    get_almacenes, update_almacen, delete_almacen,
-    create_movimiento_inventario, get_movimiento_inventario, get_movimientos_by_almacen_fecha,
-    get_movimientos_by_producto, update_movimiento_inventario, delete_movimiento_inventario,
-    create_transferencia_inventario, get_transferencia, get_transferencia_by_folio,
-    get_transferencias_by_almacen_origen, get_transferencias_by_almacen_destino,
-    update_transferencia_inventario, delete_transferencia_inventario,
-    create_detalle_transferencia, get_detalle_transferencia, get_detalles_by_transferencia,
-    update_detalle_transferencia, delete_detalle_transferencia,
-    create_pedido, get_pedido, get_pedido_by_folio,
-    get_pedidos_by_cliente, update_pedido, delete_pedido,
-    create_detalle_pedido, get_detalle_pedido, get_detalles_by_pedido,
-    update_detalle_pedido, delete_detalle_pedido,
-    create_venta, get_venta, get_venta_by_folio,
-    get_ventas_by_cliente, update_venta, delete_venta,
-    create_pago, get_pago, get_pagos_by_venta,
-    update_pago, delete_pago,
-    create_busqueda_avanzada, get_busqueda_avanzada, get_busquedas_avanzadas_by_producto,
-    update_busqueda_avanzada, delete_busqueda_avanzada
+    create_sales_configuration,
+    get_sales_configuration,
+    update_sales_configuration,
+    delete_sales_configuration,
+    create_discount_rule,
+    get_discount_rule,
+    get_discount_rules_by_company,
+    update_discount_rule,
+    delete_discount_rule,
+    get_active_discount_rules,
+    create_loyalty_program,
+    get_loyalty_program,
+    get_loyalty_programs_by_company,
+    get_default_loyalty_program,
+    update_loyalty_program,
+    delete_loyalty_program,
+    create_price_list,
+    get_price_list,
+    get_price_lists_by_company,
+    get_default_price_list,
+    update_price_list,
+    delete_price_list,
+    create_price_list_item,
+    get_price_list_item,
+    get_price_list_items_by_list,
+    get_price_list_item_by_product_and_list,
+    update_price_list_item,
+    delete_price_list_item,
+    get_current_price_for_product
 )
+from app.crud.security import create_audit_log
+from app.models.security import AuditLog
 
-router = APIRouter(prefix="/sales", tags=["Sales"])
-
-# ============================================================================
-# CUSTOMER ENDPOINTS
-# ============================================================================
-
-@router.post("/customers/", response_model=ClienteResponse)
-def create_customer(cliente: ClienteCreate, db: Session = Depends(get_db)):
-    """Create a new customer"""
-    # Check if customer code already exists
-    existing_cliente = get_cliente_by_codigo(db, cliente.codigo)
-    if existing_cliente:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Customer with this code already exists"
-        )
-    
-    # Check if RFC already exists
-    existing_rfc = get_cliente_by_rfc(db, cliente.rfc)
-    if existing_rfc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Customer with this RFC already exists"
-        )
-    
-    return create_cliente(db=db, cliente_data=cliente)
+router = APIRouter(prefix="/sales-config", tags=["sales-config"])
 
 
-@router.get("/customers/{cliente_id}", response_model=ClienteResponse)
-def get_customer(cliente_id: str, db: Session = Depends(get_db)):
-    """Get a customer by ID"""
-    cliente = get_cliente(db, cliente_id)
-    if not cliente:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    return cliente
-
-
-@router.get("/customers/", response_model=List[ClienteResponse])
-def get_customers(
-    skip: int = 0, 
-    limit: int = 100,
-    tipo_cliente: Optional[str] = None,
-    activo: Optional[bool] = None,
-    db: Session = Depends(get_db)
+# Función auxiliar para registrar eventos de auditoría
+def log_audit_event(
+    db: Session,
+    request: Request,
+    user_id: Optional[int],
+    action: str,
+    resource_type: str,
+    resource_id: Optional[int] = None,
+    old_values: Optional[dict] = None,
+    new_values: Optional[dict] = None,
+    notes: Optional[str] = None
 ):
-    """Get list of customers, optionally filtered"""
-    return get_clientes(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        tipo_cliente=tipo_cliente, 
-        activo=activo
-    )
-
-
-@router.put("/customers/{cliente_id}", response_model=ClienteResponse)
-def update_customer(
-    cliente_id: str, 
-    cliente_data: ClienteUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update a customer"""
-    updated_cliente = update_cliente(
-        db=db, 
-        cliente_id=cliente_id, 
-        cliente_data=cliente_data
-    )
-    if not updated_cliente:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    return updated_cliente
-
-
-@router.delete("/customers/{cliente_id}")
-def delete_customer(cliente_id: str, db: Session = Depends(get_db)):
-    """Delete a customer"""
-    success = delete_cliente(db=db, cliente_id=cliente_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    return {"message": "Customer deleted successfully"}
-
-
-# ============================================================================
-# DELIVERY ADDRESS ENDPOINTS
-# ============================================================================
-
-@router.post("/delivery-addresses/", response_model=DireccionEntregaResponse)
-def create_delivery_address(direccion: DireccionEntregaCreate, db: Session = Depends(get_db)):
-    """Create a new delivery address"""
-    return create_direccion_entrega(db=db, direccion_data=direccion)
-
-
-@router.get("/delivery-addresses/{direccion_id}", response_model=DireccionEntregaResponse)
-def get_delivery_address(direccion_id: str, db: Session = Depends(get_db)):
-    """Get a delivery address by ID"""
-    direccion = get_direccion_entrega(db, direccion_id)
-    if not direccion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Delivery address not found"
-        )
-    return direccion
-
-
-@router.get("/customers/{cliente_id}/delivery-addresses", response_model=List[DireccionEntregaResponse])
-def get_customer_delivery_addresses(cliente_id: str, db: Session = Depends(get_db)):
-    """Get all delivery addresses for a specific customer"""
-    return get_direcciones_entrega_by_cliente(db, cliente_id)
-
-
-@router.put("/delivery-addresses/{direccion_id}", response_model=DireccionEntregaResponse)
-def update_delivery_address(
-    direccion_id: str, 
-    direccion_data: DireccionEntregaUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update a delivery address"""
-    updated_direccion = update_direccion_entrega(
-        db=db, 
-        direccion_id=direccion_id, 
-        direccion_data=direccion_data
-    )
-    if not updated_direccion:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Delivery address not found"
-        )
-    return updated_direccion
-
-
-@router.delete("/delivery-addresses/{direccion_id}")
-def delete_delivery_address(direccion_id: str, db: Session = Depends(get_db)):
-    """Delete a delivery address"""
-    success = delete_direccion_entrega(db=db, direccion_id=direccion_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Delivery address not found"
-        )
-    return {"message": "Delivery address deleted successfully"}
-
-
-# ============================================================================
-# WAREHOUSE ENDPOINTS
-# ============================================================================
-
-@router.post("/warehouses/", response_model=AlmacenResponse)
-def create_warehouse(almacen: AlmacenCreate, db: Session = Depends(get_db)):
-    """Create a new warehouse"""
-    # Check if warehouse code already exists
-    existing_almacen = get_almacen_by_codigo(db, almacen.codigo)
-    if existing_almacen:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Warehouse with this code already exists"
-        )
-    
-    return create_almacen(db=db, almacen_data=almacen)
-
-
-@router.get("/warehouses/{almacen_id}", response_model=AlmacenResponse)
-def get_warehouse(almacen_id: str, db: Session = Depends(get_db)):
-    """Get a warehouse by ID"""
-    almacen = get_almacen(db, almacen_id)
-    if not almacen:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Warehouse not found"
-        )
-    return almacen
-
-
-@router.get("/warehouses/", response_model=List[AlmacenResponse])
-def get_warehouses(
-    skip: int = 0, 
-    limit: int = 100,
-    tipo: Optional[str] = None,
-    activo: Optional[bool] = None,
-    empresa_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """Get list of warehouses, optionally filtered"""
-    uuid_empresa_id = None
-    if empresa_id:
-        from uuid import UUID
-        try:
-            uuid_empresa_id = UUID(empresa_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid company ID format"
-            )
-    
-    return get_almacenes(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        tipo=tipo, 
-        activo=activo,
-        empresa_id=uuid_empresa_id
-    )
-
-
-@router.put("/warehouses/{almacen_id}", response_model=AlmacenResponse)
-def update_warehouse(
-    almacen_id: str, 
-    almacen_data: AlmacenUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update a warehouse"""
-    updated_almacen = update_almacen(
-        db=db, 
-        almacen_id=almacen_id, 
-        almacen_data=almacen_data
-    )
-    if not updated_almacen:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Warehouse not found"
-        )
-    return updated_almacen
-
-
-@router.delete("/warehouses/{almacen_id}")
-def delete_warehouse(almacen_id: str, db: Session = Depends(get_db)):
-    """Delete a warehouse"""
-    success = delete_almacen(db=db, almacen_id=almacen_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Warehouse not found"
-        )
-    return {"message": "Warehouse deleted successfully"}
-
-
-# ============================================================================
-# INVENTORY MOVEMENT ENDPOINTS
-# ============================================================================
-
-@router.post("/inventory-movements/", response_model=MovimientoInventarioResponse)
-def create_inventory_movement(movimiento: MovimientoInventarioCreate, db: Session = Depends(get_db)):
-    """Create a new inventory movement"""
-    return create_movimiento_inventario(db=db, movimiento_data=movimiento)
-
-
-@router.get("/inventory-movements/{movimiento_id}", response_model=MovimientoInventarioResponse)
-def get_inventory_movement(movimiento_id: str, db: Session = Depends(get_db)):
-    """Get an inventory movement by ID"""
-    movimiento = get_movimiento_inventario(db, movimiento_id)
-    if not movimiento:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory movement not found"
-        )
-    return movimiento
-
-
-@router.get("/warehouses/{almacen_id}/inventory-movements", response_model=List[MovimientoInventarioResponse])
-def get_warehouse_inventory_movements(
-    almacen_id: str, 
-    fecha_inicio: str, 
-    fecha_fin: str, 
-    db: Session = Depends(get_db)
-):
-    """Get inventory movements for a warehouse within a date range"""
-    from datetime import datetime
     try:
-        start_date = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
-        end_date = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
-    except ValueError:
+        audit_data = {
+            "user_id": user_id,
+            "action": action,
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "old_values": old_values,
+            "new_values": new_values,
+            "ip_address": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent"),
+            "notes": notes
+        }
+        create_audit_log(db, audit_data)
+    except Exception:
+        # Si falla la auditoría, no debe afectar la operación principal
+        pass
+
+
+# Rutas para SalesConfiguration
+@router.post("/configuration/", response_model=SalesConfigurationResponse)
+def create_sales_config(
+    request: Request,
+    config: SalesConfigurationCreate, 
+    db: Session = Depends(get_db)
+):
+    """Crear una configuración de ventas para una empresa"""
+    # Verificar si ya existe una configuración para esta empresa
+    existing_config = get_sales_configuration(db, config.company_id)
+    if existing_config:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date format. Use YYYY-MM-DD."
+            detail="Ya existe una configuración para esta empresa"
         )
     
-    return get_movimientos_by_almacen_fecha(
-        db, almacen_id, start_date, end_date
-    )
-
-
-@router.get("/products/{producto_id}/inventory-movements", response_model=List[MovimientoInventarioResponse])
-def get_product_inventory_movements(producto_id: str, db: Session = Depends(get_db)):
-    """Get all movements for a specific product"""
-    return get_movimientos_by_producto(db, producto_id)
-
-
-@router.put("/inventory-movements/{movimiento_id}", response_model=MovimientoInventarioResponse)
-def update_inventory_movement(
-    movimiento_id: str, 
-    movimiento_data: MovimientoInventarioUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update an inventory movement"""
-    updated_movimiento = update_movimiento_inventario(
-        db=db, 
-        movimiento_id=movimiento_id, 
-        movimiento_data=movimiento_data
-    )
-    if not updated_movimiento:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory movement not found"
-        )
-    return updated_movimiento
-
-
-@router.delete("/inventory-movements/{movimiento_id}")
-def delete_inventory_movement(movimiento_id: str, db: Session = Depends(get_db)):
-    """Delete an inventory movement"""
-    success = delete_movimiento_inventario(db=db, movimiento_id=movimiento_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory movement not found"
-        )
-    return {"message": "Inventory movement deleted successfully"}
-
-
-# ============================================================================
-# INVENTORY TRANSFER ENDPOINTS
-# ============================================================================
-
-@router.post("/inventory-transfers/", response_model=TransferenciaInventarioResponse)
-def create_inventory_transfer(transferencia: TransferenciaInventarioCreate, db: Session = Depends(get_db)):
-    """Create a new inventory transfer"""
-    try:
-        return create_transferencia_inventario(db=db, transferencia_data=transferencia)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.get("/inventory-transfers/{transferencia_id}", response_model=TransferenciaInventarioResponse)
-def get_inventory_transfer(transferencia_id: str, db: Session = Depends(get_db)):
-    """Get an inventory transfer by ID"""
-    transferencia = get_transferencia(db, transferencia_id)
-    if not transferencia:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory transfer not found"
-        )
-    return transferencia
-
-
-@router.get("/inventory-transfers/", response_model=List[TransferenciaInventarioResponse])
-def get_inventory_transfers_by_warehouse(
-    almacen_origen_id: Optional[str] = None,
-    almacen_destino_id: Optional[str] = None,
-    estado: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """Get inventory transfers by warehouse, optionally filtered by state"""
-    if almacen_origen_id:
-        return get_transferencias_by_almacen_origen(db, almacen_origen_id, estado)
-    elif almacen_destino_id:
-        return get_transferencias_by_almacen_destino(db, almacen_destino_id, estado)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Either origen or destino warehouse ID must be provided"
-        )
-
-
-@router.put("/inventory-transfers/{transferencia_id}", response_model=TransferenciaInventarioResponse)
-def update_inventory_transfer(
-    transferencia_id: str, 
-    transferencia_data: TransferenciaInventarioUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update an inventory transfer"""
-    updated_transferencia = update_transferencia_inventario(
-        db=db, 
-        transferencia_id=transferencia_id, 
-        transferencia_data=transferencia_data
-    )
-    if not updated_transferencia:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory transfer not found"
-        )
-    return updated_transferencia
-
-
-@router.delete("/inventory-transfers/{transferencia_id}")
-def delete_inventory_transfer(transferencia_id: str, db: Session = Depends(get_db)):
-    """Delete an inventory transfer"""
-    success = delete_transferencia_inventario(db=db, transferencia_id=transferencia_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Inventory transfer not found"
-        )
-    return {"message": "Inventory transfer deleted successfully"}
-
-
-# ============================================================================
-# TRANSFER DETAIL ENDPOINTS
-# ============================================================================
-
-@router.post("/transfer-details/", response_model=DetalleTransferenciaResponse)
-def create_transfer_detail(detalle: DetalleTransferenciaCreate, db: Session = Depends(get_db)):
-    """Create a new transfer detail"""
-    return create_detalle_transferencia(db=db, detalle_data=detalle)
-
-
-@router.get("/transfer-details/{detalle_id}", response_model=DetalleTransferenciaResponse)
-def get_transfer_detail(detalle_id: str, db: Session = Depends(get_db)):
-    """Get a transfer detail by ID"""
-    detalle = get_detalle_transferencia(db, detalle_id)
-    if not detalle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transfer detail not found"
-        )
-    return detalle
-
-
-@router.get("/inventory-transfers/{transferencia_id}/details", response_model=List[DetalleTransferenciaResponse])
-def get_transfer_details(transferencia_id: str, db: Session = Depends(get_db)):
-    """Get all details for a specific transfer"""
-    return get_detalles_by_transferencia(db, transferencia_id)
-
-
-@router.put("/transfer-details/{detalle_id}", response_model=DetalleTransferenciaResponse)
-def update_transfer_detail(
-    detalle_id: str, 
-    detalle_data: DetalleTransferenciaUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update a transfer detail"""
-    updated_detalle = update_detalle_transferencia(
-        db=db, 
-        detalle_id=detalle_id, 
-        detalle_data=detalle_data
-    )
-    if not updated_detalle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transfer detail not found"
-        )
-    return updated_detalle
-
-
-@router.delete("/transfer-details/{detalle_id}")
-def delete_transfer_detail(detalle_id: str, db: Session = Depends(get_db)):
-    """Delete a transfer detail"""
-    success = delete_detalle_transferencia(db=db, detalle_id=detalle_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Transfer detail not found"
-        )
-    return {"message": "Transfer detail deleted successfully"}
-
-
-# ============================================================================
-# SALES ORDER ENDPOINTS
-# ============================================================================
-
-@router.post("/orders/", response_model=PedidoResponse)
-def create_sales_order(pedido: PedidoCreate, db: Session = Depends(get_db)):
-    """Create a new sales order"""
-    try:
-        return create_pedido(db=db, pedido_data=pedido)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.get("/orders/{pedido_id}", response_model=PedidoResponse)
-def get_sales_order(pedido_id: str, db: Session = Depends(get_db)):
-    """Get a sales order by ID"""
-    pedido = get_pedido(db, pedido_id)
-    if not pedido:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sales order not found"
-        )
-    return pedido
-
-
-@router.get("/customers/{cliente_id}/orders", response_model=List[PedidoResponse])
-def get_customer_orders(
-    cliente_id: str, 
-    estado: Optional[str] = None, 
-    db: Session = Depends(get_db)
-):
-    """Get all orders for a specific client, optionally filtered by state"""
-    return get_pedidos_by_cliente(db, cliente_id, estado)
-
-
-@router.put("/orders/{pedido_id}", response_model=PedidoResponse)
-def update_sales_order(
-    pedido_id: str, 
-    pedido_data: PedidoUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update a sales order"""
-    updated_pedido = update_pedido(
-        db=db, 
-        pedido_id=pedido_id, 
-        pedido_data=pedido_data
-    )
-    if not updated_pedido:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sales order not found"
-        )
-    return updated_pedido
-
-
-@router.delete("/orders/{pedido_id}")
-def delete_sales_order(pedido_id: str, db: Session = Depends(get_db)):
-    """Delete a sales order"""
-    success = delete_pedido(db=db, pedido_id=pedido_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sales order not found"
-        )
-    return {"message": "Sales order deleted successfully"}
-
-
-# ============================================================================
-# ORDER DETAIL ENDPOINTS
-# ============================================================================
-
-@router.post("/order-details/", response_model=DetallePedidoResponse)
-def create_order_detail(detalle: DetallePedidoCreate, db: Session = Depends(get_db)):
-    """Create a new order detail"""
-    return create_detalle_pedido(db=db, detalle_data=detalle)
-
-
-@router.get("/order-details/{detalle_id}", response_model=DetallePedidoResponse)
-def get_order_detail(detalle_id: str, db: Session = Depends(get_db)):
-    """Get an order detail by ID"""
-    detalle = get_detalle_pedido(db, detalle_id)
-    if not detalle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order detail not found"
-        )
-    return detalle
-
-
-@router.get("/orders/{pedido_id}/details", response_model=List[DetallePedidoResponse])
-def get_order_details(pedido_id: str, db: Session = Depends(get_db)):
-    """Get all details for a specific order"""
-    return get_detalles_by_pedido(db, pedido_id)
-
-
-@router.put("/order-details/{detalle_id}", response_model=DetallePedidoResponse)
-def update_order_detail(
-    detalle_id: str, 
-    detalle_data: DetallePedidoUpdate, 
-    db: Session = Depends(get_db)
-):
-    """Update an order detail"""
-    updated_detalle = update_detalle_pedido(
-        db=db, 
-        detalle_id=detalle_id, 
-        detalle_data=detalle_data
-    )
-    if not updated_detalle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order detail not found"
-        )
-    return updated_detalle
-
-
-@router.delete("/order-details/{detalle_id}")
-def delete_order_detail(detalle_id: str, db: Session = Depends(get_db)):
-    """Delete an order detail"""
-    success = delete_detalle_pedido(db=db, detalle_id=detalle_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Order detail not found"
-        )
-    return {"message": "Order detail deleted successfully"}
-
-
-# ============================================================================
-# SALE ENDPOINTS
-# ============================================================================
-
-@router.post("/sales/", response_model=VentaResponse)
-def create_sale(venta: VentaCreate, db: Session = Depends(get_db)):
-    """Create a new sale"""
-    try:
-        return create_venta(db=db, venta_data=venta)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-
-
-@router.get("/sales/{venta_id}", response_model=VentaResponse)
-def get_sale(venta_id: str, db: Session = Depends(get_db)):
-    """Get a sale by ID"""
-    venta = get_venta(db, venta_id)
-    if not venta:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sale not found"
-        )
-    return venta
-
-
-@router.get("/customers/{cliente_id}/sales", response_model=List[VentaResponse])
-def get_customer_sales(
-    cliente_id: str, 
-    fecha_inicio: Optional[str] = None,
-    fecha_fin: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """Get all sales for a specific client, optionally filtered by date range"""
-    from datetime import datetime
-    start_date = None
-    end_date = None
+    result = create_sales_configuration(db=db, config=config)
     
-    if fecha_inicio:
-        try:
-            start_date = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid start date format. Use YYYY-MM-DD."
-            )
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, config.created_by, "create", "sales_configuration", 
+        result.id, None, config.dict(), "Creación de configuración de ventas"
+    )
     
-    if fecha_fin:
-        try:
-            end_date = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid end date format. Use YYYY-MM-DD."
-            )
+    return result
+
+
+@router.get("/configuration/{company_id}", response_model=SalesConfigurationResponse)
+def get_sales_config(company_id: int, db: Session = Depends(get_db)):
+    """Obtener la configuración de ventas para una empresa"""
+    config = get_sales_configuration(db, company_id)
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuración de ventas no encontrada"
+        )
     
-    return get_ventas_by_cliente(db, cliente_id, start_date, end_date)
+    return config
 
 
-@router.put("/sales/{venta_id}", response_model=VentaResponse)
-def update_sale(
-    venta_id: str, 
-    venta_data: VentaUpdate, 
+@router.put("/configuration/{company_id}", response_model=SalesConfigurationResponse)
+def update_sales_config(
+    request: Request,
+    company_id: int, 
+    config_update: SalesConfigurationUpdate, 
     db: Session = Depends(get_db)
 ):
-    """Update a sale"""
-    updated_venta = update_venta(
-        db=db, 
-        venta_id=venta_id, 
-        venta_data=venta_data
+    """Actualizar la configuración de ventas para una empresa"""
+    # Obtener configuración actual antes de actualizar
+    old_config = get_sales_configuration(db, company_id)
+    if not old_config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuración de ventas no encontrada"
+        )
+    
+    old_values = {
+        "price_update_approval_required": old_config.price_update_approval_required,
+        "allow_manual_discounts": old_config.allow_manual_discounts,
+        "max_discount_percentage": float(old_config.max_discount_percentage),
+        "enable_promotions": old_config.enable_promotions,
+        "promotion_approval_required": old_config.promotion_approval_required,
+        "enable_customer_loyalty": old_config.enable_customer_loyalty,
+        "loyalty_points_per_currency": float(old_config.loyalty_points_per_currency),
+        "points_to_currency_ratio": float(old_config.points_to_currency_ratio),
+        "require_sales_order_approval": old_config.require_sales_order_approval,
+        "allow_backorders": old_config.allow_backorders,
+        "default_sales_terms": old_config.default_sales_terms,
+        "default_tax_rate": float(old_config.default_tax_rate),
+    }
+    
+    config = update_sales_configuration(db=db, company_id=company_id, config_update=config_update)
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, config.created_by, "update", "sales_configuration", 
+        config.id, old_values, config_update.dict(exclude_unset=True), 
+        "Actualización de configuración de ventas"
     )
-    if not updated_venta:
+    
+    if not config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sale not found"
+            detail="Configuración de ventas no encontrada"
         )
-    return updated_venta
+    return config
 
 
-@router.delete("/sales/{venta_id}")
-def delete_sale(venta_id: str, db: Session = Depends(get_db)):
-    """Delete a sale"""
-    success = delete_venta(db=db, venta_id=venta_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sale not found"
-        )
-    return {"message": "Sale deleted successfully"}
-
-
-# ============================================================================
-# PAYMENT ENDPOINTS
-# ============================================================================
-
-@router.post("/payments/", response_model=PagoResponse)
-def create_payment(pago: PagoCreate, db: Session = Depends(get_db)):
-    """Create a new payment"""
-    return create_pago(db=db, pago_data=pago)
-
-
-@router.get("/payments/{pago_id}", response_model=PagoResponse)
-def get_payment(pago_id: str, db: Session = Depends(get_db)):
-    """Get a payment by ID"""
-    pago = get_pago(db, pago_id)
-    if not pago:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payment not found"
-        )
-    return pago
-
-
-@router.get("/sales/{venta_id}/payments", response_model=List[PagoResponse])
-def get_sale_payments(venta_id: str, db: Session = Depends(get_db)):
-    """Get all payments for a specific sale"""
-    return get_pagos_by_venta(db, venta_id)
-
-
-@router.put("/payments/{pago_id}", response_model=PagoResponse)
-def update_payment(
-    pago_id: str, 
-    pago_data: PagoUpdate, 
+@router.delete("/configuration/{company_id}")
+def delete_sales_config(
+    request: Request,
+    company_id: int, 
     db: Session = Depends(get_db)
 ):
-    """Update a payment"""
-    updated_pago = update_pago(
-        db=db, 
-        pago_id=pago_id, 
-        pago_data=pago_data
+    """Eliminar la configuración de ventas para una empresa"""
+    config = get_sales_configuration(db, company_id)
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuración de ventas no encontrada"
+        )
+    
+    old_values = {
+        "price_update_approval_required": config.price_update_approval_required,
+        "allow_manual_discounts": config.allow_manual_discounts,
+        "max_discount_percentage": float(config.max_discount_percentage),
+        "enable_promotions": config.enable_promotions,
+        "promotion_approval_required": config.promotion_approval_required,
+        "enable_customer_loyalty": config.enable_customer_loyalty,
+        "loyalty_points_per_currency": float(config.loyalty_points_per_currency),
+        "points_to_currency_ratio": float(config.points_to_currency_ratio),
+        "require_sales_order_approval": config.require_sales_order_approval,
+        "allow_backorders": config.allow_backorders,
+        "default_sales_terms": config.default_sales_terms,
+        "default_tax_rate": float(config.default_tax_rate),
+    }
+    
+    result = delete_sales_configuration(db=db, company_id=company_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Configuración de ventas no encontrada"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, config.created_by, "delete", "sales_configuration", 
+        config.id, old_values, None, 
+        "Eliminación de configuración de ventas"
     )
-    if not updated_pago:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payment not found"
-        )
-    return updated_pago
+    
+    return {"message": "Configuración de ventas eliminada exitosamente"}
 
 
-@router.delete("/payments/{pago_id}")
-def delete_payment(pago_id: str, db: Session = Depends(get_db)):
-    """Delete a payment"""
-    success = delete_pago(db=db, pago_id=pago_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payment not found"
-        )
-    return {"message": "Payment deleted successfully"}
-
-
-# ============================================================================
-# ADVANCED SEARCH ENDPOINTS
-# ============================================================================
-
-@router.post("/advanced-search/", response_model=BusquedaAvanzadaResponse)
-def create_advanced_search(busqueda: BusquedaAvanzadaCreate, db: Session = Depends(get_db)):
-    """Create a new advanced search record"""
-    return create_busqueda_avanzada(db=db, busqueda_data=busqueda)
-
-
-@router.get("/advanced-search/{busqueda_id}", response_model=BusquedaAvanzadaResponse)
-def get_advanced_search(busqueda_id: str, db: Session = Depends(get_db)):
-    """Get an advanced search record by ID"""
-    busqueda = get_busqueda_avanzada(db, busqueda_id)
-    if not busqueda:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Advanced search record not found"
-        )
-    return busqueda
-
-
-@router.get("/products/{producto_id}/advanced-search", response_model=List[BusquedaAvanzadaResponse])
-def get_product_advanced_searches(producto_id: str, db: Session = Depends(get_db)):
-    """Get all advanced searches for a specific product"""
-    return get_busquedas_avanzadas_by_producto(db, producto_id)
-
-
-@router.put("/advanced-search/{busqueda_id}", response_model=BusquedaAvanzadaResponse)
-def update_advanced_search(
-    busqueda_id: str, 
-    busqueda_data: BusquedaAvanzadaUpdate, 
+# Rutas para DiscountRule
+@router.post("/discount-rules/", response_model=DiscountRuleResponse)
+def create_discount_r(
+    request: Request,
+    route: DiscountRuleCreate, 
     db: Session = Depends(get_db)
 ):
-    """Update an advanced search record"""
-    updated_busqueda = update_busqueda_avanzada(
-        db=db, 
-        busqueda_id=busqueda_id, 
-        busqueda_data=busqueda_data
+    """Crear una regla de descuento"""
+    result = create_discount_rule(db=db, rule=route)
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, route.created_by, "create", "discount_rule", 
+        result.id, None, route.dict(), "Creación de regla de descuento"
     )
-    if not updated_busqueda:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Advanced search record not found"
-        )
-    return updated_busqueda
+    
+    return result
 
 
-@router.delete("/advanced-search/{busqueda_id}")
-def delete_advanced_search(busqueda_id: str, db: Session = Depends(get_db)):
-    """Delete an advanced search record"""
-    success = delete_busqueda_avanzada(db=db, busqueda_id=busqueda_id)
-    if not success:
+@router.get("/discount-rules/{rule_id}", response_model=DiscountRuleResponse)
+def get_discount_r(rule_id: int, db: Session = Depends(get_db)):
+    """Obtener una regla de descuento por ID"""
+    rule = get_discount_rule(db, rule_id)
+    if not rule:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Advanced search record not found"
+            detail="Regla de descuento no encontrada"
         )
-    return {"message": "Advanced search record deleted successfully"}
+    return rule
+
+
+@router.get("/discount-rules/company/{company_id}", response_model=List[DiscountRuleResponse])
+def get_discount_rules(
+    company_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Obtener reglas de descuento por empresa"""
+    return get_discount_rules_by_company(db, company_id, skip=skip, limit=limit)
+
+
+@router.get("/discount-rules/company/{company_id}/active", response_model=List[DiscountRuleResponse])
+def get_active_discount_rules_by_company(company_id: int, db: Session = Depends(get_db)):
+    """Obtener reglas de descuento activas por empresa"""
+    return get_active_discount_rules(db, company_id)
+
+
+@router.put("/discount-rules/{rule_id}", response_model=DiscountRuleResponse)
+def update_discount_r(
+    request: Request,
+    rule_id: int,
+    rule_update: DiscountRuleUpdate,
+    db: Session = Depends(get_db)
+):
+    """Actualizar una regla de descuento"""
+    # Obtener regla actual antes de actualizar
+    old_rule = get_discount_rule(db, rule_id)
+    if not old_rule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regla de descuento no encontrada"
+        )
+    
+    old_values = {
+        "name": old_rule.name,
+        "description": old_rule.description,
+        "discount_type": old_rule.discount_type,
+        "discount_value": float(old_rule.discount_value),
+        "min_quantity": old_rule.min_quantity,
+        "min_amount": float(old_rule.min_amount),
+        "applies_to_all_products": old_rule.applies_to_all_products,
+        "start_date": old_rule.start_date.isoformat() if old_rule.start_date else None,
+        "end_date": old_rule.end_date.isoformat() if old_rule.end_date else None,
+        "is_active": old_rule.is_active,
+        "priority": old_rule.priority,
+    }
+    
+    rule = update_discount_rule(db=db, rule_id=rule_id, rule_update=rule_update)
+    if not rule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regla de descuento no encontrada"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, rule.created_by, "update", "discount_rule", 
+        rule.id, old_values, rule_update.dict(exclude_unset=True), 
+        "Actualización de regla de descuento"
+    )
+    
+    return rule
+
+
+@router.delete("/discount-rules/{rule_id}")
+def delete_discount_r(
+    request: Request,
+    rule_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Eliminar una regla de descuento"""
+    rule = get_discount_rule(db, rule_id)
+    if not rule:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regla de descuento no encontrada"
+        )
+    
+    old_values = {
+        "name": rule.name,
+        "description": rule.description,
+        "discount_type": rule.discount_type,
+        "discount_value": float(rule.discount_value),
+        "min_quantity": rule.min_quantity,
+        "min_amount": float(rule.min_amount),
+        "applies_to_all_products": rule.applies_to_all_products,
+        "start_date": rule.start_date.isoformat() if rule.start_date else None,
+        "end_date": rule.end_date.isoformat() if rule.end_date else None,
+        "is_active": rule.is_active,
+        "priority": rule.priority,
+    }
+    
+    result = delete_discount_rule(db=db, rule_id=rule_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Regla de descuento no encontrada"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, rule.created_by, "delete", "discount_rule", 
+        rule.id, old_values, None, 
+        "Eliminación de regla de descuento"
+    )
+    
+    return {"message": "Regla de descuento eliminada exitosamente"}
+
+
+# Rutas para LoyaltyProgram
+@router.post("/loyalty-programs/", response_model=LoyaltyProgramResponse)
+def create_loyalty_pgm(
+    request: Request,
+    program: LoyaltyProgramCreate, 
+    db: Session = Depends(get_db)
+):
+    """Crear un programa de lealtad"""
+    result = create_loyalty_program(db=db, program=program)
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, program.created_by, "create", "loyalty_program", 
+        result.id, None, program.dict(), "Creación de programa de lealtad"
+    )
+    
+    return result
+
+
+@router.get("/loyalty-programs/{program_id}", response_model=LoyaltyProgramResponse)
+def get_loyalty_pgm(program_id: int, db: Session = Depends(get_db)):
+    """Obtener un programa de lealtad por ID"""
+    program = get_loyalty_program(db, program_id)
+    if not program:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Programa de lealtad no encontrado"
+        )
+    return program
+
+
+@router.get("/loyalty-programs/company/{company_id}", response_model=List[LoyaltyProgramResponse])
+def get_loyalty_programs(
+    company_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Obtener programas de lealtad por empresa"""
+    return get_loyalty_programs_by_company(db, company_id, skip=skip, limit=limit)
+
+
+@router.get("/loyalty-programs/company/{company_id}/default", response_model=Optional[LoyaltyProgramResponse])
+def get_default_loyalty_pgm(company_id: int, db: Session = Depends(get_db)):
+    """Obtener el programa de lealtad predeterminado de una empresa"""
+    program = get_default_loyalty_program(db, company_id)
+    return program
+
+
+@router.put("/loyalty-programs/{program_id}", response_model=LoyaltyProgramResponse)
+def update_loyalty_pgm(
+    request: Request,
+    program_id: int,
+    program_update: LoyaltyProgramUpdate,
+    db: Session = Depends(get_db)
+):
+    """Actualizar un programa de lealtad"""
+    # Obtener programa actual antes de actualizar
+    old_program = get_loyalty_program(db, program_id)
+    if not old_program:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Programa de lealtad no encontrado"
+        )
+    
+    old_values = {
+        "name": old_program.name,
+        "description": old_program.description,
+        "earning_method": old_program.earning_method,
+        "points_calculation": old_program.points_calculation,
+        "earning_rate": float(old_program.earning_rate),
+        "redemption_rate": float(old_program.redemption_rate),
+        "minimum_points_for_redemption": old_program.minimum_points_for_redemption,
+        "points_expire": old_program.points_expire,
+        "points_expiry_months": old_program.points_expiry_months,
+        "is_active": old_program.is_active,
+        "is_default": old_program.is_default,
+    }
+    
+    program = update_loyalty_program(db=db, program_id=program_id, program_update=program_update)
+    if not program:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Programa de lealtad no encontrado"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, program.created_by, "update", "loyalty_program", 
+        program.id, old_values, program_update.dict(exclude_unset=True), 
+        "Actualización de programa de lealtad"
+    )
+    
+    return program
+
+
+@router.delete("/loyalty-programs/{program_id}")
+def delete_loyalty_pgm(
+    request: Request,
+    program_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Eliminar un programa de lealtad"""
+    program = get_loyalty_program(db, program_id)
+    if not program:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Programa de lealtad no encontrado"
+        )
+    
+    old_values = {
+        "name": program.name,
+        "description": program.description,
+        "earning_method": program.earning_method,
+        "points_calculation": program.points_calculation,
+        "earning_rate": float(program.earning_rate),
+        "redemption_rate": float(program.redemption_rate),
+        "minimum_points_for_redemption": program.minimum_points_for_redemption,
+        "points_expire": program.points_expire,
+        "points_expiry_months": program.points_expiry_months,
+        "is_active": program.is_active,
+        "is_default": program.is_default,
+    }
+    
+    result = delete_loyalty_program(db=db, program_id=program_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Programa de lealtad no encontrado"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, program.created_by, "delete", "loyalty_program", 
+        program.id, old_values, None, 
+        "Eliminación de programa de lealtad"
+    )
+    
+    return {"message": "Programa de lealtad eliminado exitosamente"}
+
+
+# Rutas para PriceList
+@router.post("/price-lists/", response_model=PriceListResponse)
+def create_price_l(
+    request: Request,
+    price_list: PriceListCreate, 
+    db: Session = Depends(get_db)
+):
+    """Crear una lista de precios"""
+    result = create_price_list(db=db, price_list=price_list)
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, price_list.created_by, "create", "price_list", 
+        result.id, None, price_list.dict(), "Creación de lista de precios"
+    )
+    
+    return result
+
+
+@router.get("/price-lists/{price_list_id}", response_model=PriceListWithItemsResponse)
+def get_price_l(price_list_id: int, db: Session = Depends(get_db)):
+    """Obtener una lista de precios con sus items"""
+    price_list = get_price_list(db, price_list_id)
+    if not price_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lista de precios no encontrada"
+        )
+    
+    # Agregar los items a la respuesta
+    items = get_price_list_items_by_list(db, price_list_id, skip=0, limit=1000)
+    price_list.items = items
+    return price_list
+
+
+@router.get("/price-lists/company/{company_id}", response_model=List[PriceListResponse])
+def get_price_lists(
+    company_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Obtener listas de precios por empresa"""
+    return get_price_lists_by_company(db, company_id, skip=skip, limit=limit)
+
+
+@router.get("/price-lists/company/{company_id}/default", response_model=Optional[PriceListResponse])
+def get_default_price_l(company_id: int, db: Session = Depends(get_db)):
+    """Obtener la lista de precios predeterminada de una empresa"""
+    price_list = get_default_price_list(db, company_id)
+    return price_list
+
+
+@router.put("/price-lists/{price_list_id}", response_model=PriceListResponse)
+def update_price_l(
+    request: Request,
+    price_list_id: int,
+    price_list_update: PriceListUpdate,
+    db: Session = Depends(get_db)
+):
+    """Actualizar una lista de precios"""
+    # Obtener lista actual antes de actualizar
+    old_list = get_price_list(db, price_list_id)
+    if not old_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lista de precios no encontrada"
+        )
+    
+    old_values = {
+        "name": old_list.name,
+        "description": old_list.description,
+        "currency": old_list.currency,
+        "is_active": old_list.is_active,
+        "is_default": old_list.is_default,
+        "valid_from": old_list.valid_from.isoformat() if old_list.valid_from else None,
+        "valid_until": old_list.valid_until.isoformat() if old_list.valid_until else None,
+    }
+    
+    price_list = update_price_list(db=db, price_list_id=price_list_id, price_list_update=price_list_update)
+    if not price_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lista de precios no encontrada"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, price_list.created_by, "update", "price_list", 
+        price_list.id, old_values, price_list_update.dict(exclude_unset=True), 
+        "Actualización de lista de precios"
+    )
+    
+    return price_list
+
+
+@router.delete("/price-lists/{price_list_id}")
+def delete_price_l(
+    request: Request,
+    price_list_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Eliminar una lista de precios"""
+    price_list = get_price_list(db, price_list_id)
+    if not price_list:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lista de precios no encontrada"
+        )
+    
+    old_values = {
+        "name": price_list.name,
+        "description": price_list.description,
+        "currency": price_list.currency,
+        "is_active": price_list.is_active,
+        "is_default": price_list.is_default,
+        "valid_from": price_list.valid_from.isoformat() if price_list.valid_from else None,
+        "valid_until": price_list.valid_until.isoformat() if price_list.valid_until else None,
+    }
+    
+    result = delete_price_list(db=db, price_list_id=price_list_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lista de precios no encontrada"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, price_list.created_by, "delete", "price_list", 
+        price_list.id, old_values, None, 
+        "Eliminación de lista de precios"
+    )
+    
+    return {"message": "Lista de precios eliminada exitosamente"}
+
+
+# Rutas para PriceListItem
+@router.post("/price-list-items/", response_model=PriceListItemResponse)
+def create_price_list_it(
+    request: Request,
+    item: PriceListItemCreate, 
+    db: Session = Depends(get_db)
+):
+    """Crear un ítem en una lista de precios"""
+    result = create_price_list_item(db=db, item=item)
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, None, "create", "price_list_item", 
+        result.id, None, item.dict(), "Creación de ítem de lista de precios"
+    )
+    
+    return result
+
+
+@router.get("/price-list-items/{item_id}", response_model=PriceListItemResponse)
+def get_price_list_it(item_id: int, db: Session = Depends(get_db)):
+    """Obtener un ítem de lista de precios por ID"""
+    item = get_price_list_item(db, item_id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem de lista de precios no encontrado"
+        )
+    return item
+
+
+@router.get("/price-list-items/list/{price_list_id}", response_model=List[PriceListItemResponse])
+def get_price_list_items(
+    price_list_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Obtener ítems de una lista de precios"""
+    return get_price_list_items_by_list(db, price_list_id, skip=skip, limit=limit)
+
+
+@router.put("/price-list-items/{item_id}", response_model=PriceListItemResponse)
+def update_price_list_it(
+    request: Request,
+    item_id: int,
+    item_update: PriceListItemUpdate,
+    db: Session = Depends(get_db)
+):
+    """Actualizar un ítem en una lista de precios"""
+    # Obtener ítem actual antes de actualizar
+    old_item = get_price_list_item(db, item_id)
+    if not old_item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem de lista de precios no encontrado"
+        )
+    
+    old_values = {
+        "price": float(old_item.price),
+        "currency": old_item.currency,
+        "valid_from": old_item.valid_from.isoformat() if old_item.valid_from else None,
+        "valid_until": old_item.valid_until.isoformat() if old_item.valid_until else None,
+    }
+    
+    item = update_price_list_item(db=db, item_id=item_id, item_update=item_update)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem de lista de precios no encontrado"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, None, "update", "price_list_item", 
+        item.id, old_values, item_update.dict(exclude_unset=True), 
+        "Actualización de ítem de lista de precios"
+    )
+    
+    return item
+
+
+@router.delete("/price-list-items/{item_id}")
+def delete_price_list_it(
+    request: Request,
+    item_id: int, 
+    db: Session = Depends(get_db)
+):
+    """Eliminar un ítem de una lista de precios"""
+    item = get_price_list_item(db, item_id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem de lista de precios no encontrado"
+        )
+    
+    old_values = {
+        "price": float(item.price),
+        "currency": item.currency,
+        "valid_from": item.valid_from.isoformat() if item.valid_from else None,
+        "valid_until": item.valid_until.isoformat() if item.valid_until else None,
+    }
+    
+    result = delete_price_list_item(db=db, item_id=item_id)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ítem de lista de precios no encontrado"
+        )
+    
+    # Registrar evento de auditoría
+    log_audit_event(
+        db, request, None, "delete", "price_list_item", 
+        item.id, old_values, None, 
+        "Eliminación de ítem de lista de precios"
+    )
+    
+    return {"message": "Ítem de lista de precios eliminado exitosamente"}
+
+
+@router.get("/price-list-items/current-price/{price_list_id}/{product_variant_id}")
+def get_current_price(
+    price_list_id: int,
+    product_variant_id: int,
+    db: Session = Depends(get_db)
+):
+    """Obtener el precio actual para un producto en una lista de precios específica"""
+    price = get_current_price_for_product(db, price_list_id, product_variant_id)
+    if price is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Precio no encontrado para el producto en esta lista"
+        )
+    return {"price": price}

@@ -3,15 +3,12 @@ Bank Integration: Banking integration and automatic reconciliation
 Connects to banks to import transactions and reconcile accounts
 """
 
-import json
-import requests
-import csv
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from enum import Enum
 from dataclasses import dataclass
 from decimal import Decimal
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, relationship
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Numeric, Boolean
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
@@ -19,6 +16,9 @@ import uuid
 
 from app.core.database import Base
 from app.models.finance import CuentaBancaria, Transaccion
+from app.api.deps import get_db, get_current_user
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 
 class TransactionType(Enum):
@@ -88,7 +88,7 @@ class BankConnection(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    cuenta_bancaria = relationship("CuentaBancaria")
+    cuenta_bancaria = relationship("CuentaBancaria", foreign_keys=[cuenta_bancaria_id])
 
 
 class BankTransactionRecord(Base):
@@ -120,8 +120,8 @@ class BankTransactionRecord(Base):
     imported_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
-    conexion_bancaria = relationship("BankConnection")
-    transaccion_contable = relationship("Transaccion")
+    conexion_bancaria = relationship("BankConnection", foreign_keys=[conexion_bancaria_id])
+    transaccion_contable = relationship("Transaccion", foreign_keys=[transaccion_contable_id])
 
 
 class BankIntegrationService:
@@ -208,7 +208,7 @@ class BankIntegrationService:
             success = connect_method(connection)
             
             if success:
-                connection.ultima_conexion = datetime.utcnow()
+                connection.ultima_conexion = datetime.now()
                 self.db.commit()
             
             return success
@@ -363,7 +363,7 @@ class BankIntegrationService:
         self.db.commit()
         
         # Update last sync time
-        connection.ultima_actualizacion = datetime.utcnow()
+        connection.ultima_actualizacion = datetime.now()
         self.db.commit()
         
         return {
@@ -424,7 +424,7 @@ class BankIntegrationService:
                     # Link the transactions
                     bank_txn.transaccion_contable_id = erp_txn.id
                     bank_txn.conciliada = True
-                    bank_txn.fecha_conciliacion = datetime.utcnow()
+                    bank_txn.fecha_conciliacion = datetime.now()
                     
                     reconciled_count += 1
                     matched = True
@@ -435,7 +435,7 @@ class BankIntegrationService:
                     'id': str(bank_txn.id),
                     'date': bank_txn.fecha,
                     'description': bank_txn.descripcion,
-                    'amount': bank_txn.monto
+                    'amount': float(bank_txn.monto)
                 })
         
         # Find unmatched ERP transactions
@@ -451,7 +451,7 @@ class BankIntegrationService:
                     'id': str(erp_txn.id),
                     'date': erp_txn.fecha,
                     'description': erp_txn.descripcion,
-                    'amount': erp_txn.monto
+                    'amount': float(erp_txn.monto)
                 })
         
         self.db.commit()
@@ -518,17 +518,22 @@ class BankIntegrationService:
         # Get balances
         bank_balance = self.get_account_balance(connection_id)
         
+        # Get the connection to access the linked account ID
+        connection = self.db.query(BankConnection).filter(
+            BankConnection.id == uuid.UUID(connection_id)
+        ).first()
+        
         # Calculate ERP balance for the period
         erp_txns = self.db.query(Transaccion).filter(
-            Transaccion.cuenta_id == uuid.UUID(connection_id),  # This is wrong, we need to get the account_id from the connection
+            Transaccion.cuenta_id == connection.cuenta_bancaria_id,
             Transaccion.fecha <= end_date
         ).all()
         
-        erp_balance = sum(txn.monto if txn.tipo == 'credit' else -txn.monto for txn in erp_txns)
+        erp_balance = sum(txn.monto for txn in erp_txns)
         
         return {
             **reconciliation_result,
-            "report_date": datetime.utcnow(),
+            "report_date": datetime.now(),
             "bank_balance": float(bank_balance) if bank_balance else 0,
             "erp_balance": float(erp_balance),
             "variance": float(bank_balance - erp_balance) if bank_balance else 0,
@@ -544,3 +549,101 @@ def get_bank_integration_service(db: Session) -> BankIntegrationService:
     :return: BankIntegrationService instance
     """
     return BankIntegrationService(db)
+
+
+# Add the FastAPI router for bank integration
+bank_integration_router = APIRouter(tags=["bank-integration"])
+
+class BankConnectionRequest(BaseModel):
+    banco_nombre: str
+    banco_codigo: str
+    proveedor: str
+    cuenta_bancaria_id: str
+    numero_cuenta: str
+    usuario_conexion: str
+    clave_conexion: str
+    tipo_cuenta: Optional[str] = None
+
+@bank_integration_router.post("/connect")
+def create_bank_connection(
+    request: BankConnectionRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new bank connection"""
+    service = get_bank_integration_service(db)
+    try:
+        bank_provider = BankProvider(request.proveedor)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid bank provider: {request.proveedor}")
+    
+    connection = service.create_bank_connection(
+        banco_nombre=request.banco_nombre,
+        banco_codigo=request.banco_codigo,
+        proveedor=bank_provider,
+        cuenta_bancaria_id=request.cuenta_bancaria_id,
+        numero_cuenta=request.numero_cuenta,
+        usuario_conexion=request.usuario_conexion,
+        clave_conexion=request.clave_conexion,
+        tipo_cuenta=request.tipo_cuenta
+    )
+    return {"message": "Bank connection created successfully", "id": str(connection.id)}
+
+
+@bank_integration_router.post("/sync/{connection_id}")
+def sync_bank_transactions(
+    connection_id: str,
+    start_date: str,
+    end_date: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Sync transactions from bank account"""
+    service = get_bank_integration_service(db)
+    
+    try:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format.")
+    
+    transactions = service.fetch_transactions(connection_id, start, end)
+    result = service.import_transactions(connection_id, transactions)
+    
+    return {"message": "Transactions synced successfully", "result": result}
+
+
+@bank_integration_router.post("/reconcile/{connection_id}")
+def reconcile_bank_transactions(
+    connection_id: str,
+    start_date: str,
+    end_date: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reconcile bank transactions with ERP transactions"""
+    service = get_bank_integration_service(db)
+    
+    try:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use ISO format.")
+    
+    result = service.reconcile_transactions(connection_id, start, end)
+    
+    return {"message": "Reconciliation completed", "result": result}
+
+
+@bank_integration_router.get("/balance/{connection_id}")
+def get_account_balance(
+    connection_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current account balance"""
+    service = get_bank_integration_service(db)
+    
+    balance = service.get_account_balance(connection_id)
+    
+    return {"account_id": connection_id, "balance": float(balance) if balance else 0.0}

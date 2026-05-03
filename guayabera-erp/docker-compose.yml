@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: guayabera_user
       POSTGRES_PASSWORD: guayabera_pass_2025
     ports:
-      - "5432:5432"
+      - "5434:5432"  # Cambiado de 5433 a 5434 para evitar conflicto
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -45,7 +45,7 @@ services:
       dockerfile: docker/Dockerfile.backend
     container_name: guayabera-erp-api
     environment:
-      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp  # Este sigue siendo 5432 dentro del contenedor
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: tu-secret-key-aqui-cambiar-en-produccion
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
@@ -107,7 +107,7 @@ services:
       dockerfile: docker/Dockerfile.backend
     container_name: guayabera-erp-worker
     environment:
-      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp  # Este sigue siendo 5432 dentro del contenedor
       REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app
@@ -125,7 +125,7 @@ services:
       dockerfile: docker/Dockerfile.backend
     container_name: guayabera-erp-beat
     environment:
-      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp
+      DATABASE_URL: postgresql://guayabera_user:guayabera_pass_2025@postgres:5432/guayabera_erp  # Este sigue siendo 5432 dentro del contenedor
       REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app

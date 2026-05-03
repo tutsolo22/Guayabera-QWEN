@@ -6,7 +6,7 @@ from datetime import date
 
 from app.models.business_intelligence import (
     ReporteBI, WidgetDashboard, DashboardBI, 
-    AnalisisPredictivo, Kpi, HistoricoKpi
+    AnalisisPredictivo, KPI as Kpi, ValorKPIHistorico as HistoricoKpi
 )
 from app.schemas.business_intelligence import (
     ReporteBICreate, ReporteBIUpdate, ReporteBIResponse,

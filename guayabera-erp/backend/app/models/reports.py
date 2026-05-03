@@ -117,7 +117,7 @@ class ReporteRH(Base):
     
     # Employee search filters
     empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))
-    departamento_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))
+    departamento_id = Column(Integer, ForeignKey("departamentos.id"))  # Changed from UUID to Integer to match departamentos
     puesto = Column(String(100))
     fecha_contratacion_desde = Column(Date)
     fecha_contratacion_hasta = Column(Date)
@@ -290,7 +290,7 @@ class DashboardWidget(Base):
     tamano_w = Column(Integer, default=4)  # Ancho en unidades de grid
     tamano_h = Column(Integer, default=3)  # Alto en unidades de grid
     modulo_origen = Column(String(50))  # Módulo del cual obtiene datos
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("emp_empresa.id"))  # Para multiempresa
+    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"))  # Changed from emp_empresa to admin_empresa - Para multiempresa
     
     activo = Column(Boolean, default=True)
     
@@ -312,7 +312,7 @@ class ReportePersonalizado(Base):
     parametros = Column(JSONB)  # Parámetros del reporte
     formato_salida = Column(String(20), default="pdf")  # pdf, excel, csv, html
     activo = Column(Boolean, default=True)
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("emp_empresa.id"))  # Para multiempresa
+    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"))  # Changed from emp_empresa to admin_empresa - Para multiempresa
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

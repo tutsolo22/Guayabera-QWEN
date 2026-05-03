@@ -4,7 +4,7 @@ All models use UUID primary keys and timestamps
 """
 
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text, Float, Integer
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -22,7 +22,7 @@ class Empresa(Base):
     """Company/Enterprise information"""
     __tablename__ = "admin_empresa"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     rfc = Column(String(13), unique=True, nullable=False, index=True)
     nombre_fiscal = Column(String(200), nullable=False)
     nombre_comercial = Column(String(200))
@@ -46,14 +46,15 @@ class Empresa(Base):
     # Relationships
     sucursales = relationship("Sucursal", back_populates="empresa")
     configuraciones_correo = relationship("ConfiguracionCorreo", back_populates="empresa")
+    configuraciones_correo_empresa = relationship("ConfiguracionCorreoEmpresa", back_populates="empresa")
 
 
 class Sucursal(Base):
     """Branch offices"""
     __tablename__ = "admin_sucursal"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    empresa_id = Column(PostgresUUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
     nombre = Column(String(100), nullable=False)
     codigo = Column(String(20), unique=True)
     es_principal = Column(Boolean, default=False)
@@ -77,7 +78,7 @@ class Configuracion(Base):
     """System configuration key-value pairs"""
     __tablename__ = "admin_configuracion"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     clave = Column(String(100), unique=True, nullable=False, index=True)
     valor = Column(Text)
     tipo = Column(String(50))  # string, number, boolean, json
@@ -92,7 +93,7 @@ class Moneda(Base):
     """Currency configuration"""
     __tablename__ = "admin_moneda"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     codigo = Column(String(3), unique=True, nullable=False)  # MXN, USD, EUR
     nombre = Column(String(50), nullable=False)
     simbolo = Column(String(10))
@@ -107,7 +108,7 @@ class Impuesto(Base):
     """Tax configuration"""
     __tablename__ = "admin_impuesto"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre = Column(String(100), nullable=False)  # IVA, ISR, IEPS
     tasa = Column(Float, nullable=False)  # 0.16 = 16%
     tipo = Column(String(50))  # trasladado, retenido
@@ -126,12 +127,12 @@ class ConfiguracionCorreoTipo(enum.Enum):
     GOOGLE_WORKSPACE = "google_workspace"
 
 
-class ConfiguracionCorreo(Base):
+class ConfiguracionCorreoEmpresa(Base):
     """Email configuration for a company"""
     __tablename__ = "admin_configuracion_correo"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
+    id = Column(PostgresUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    empresa_id = Column(PostgresUUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
     nombre = Column(String(100), nullable=False)  # Configuration name (e.g., "Correo Principal")
     tipo = Column(String(50), nullable=False)  # See ConfiguracionCorreoTipo enum
     servidor = Column(String(255), nullable=False)
@@ -144,3 +145,7 @@ class ConfiguracionCorreo(Base):
     predeterminado = Column(Boolean, default=False)  # Is this the default configuration?
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationship
+    empresa = relationship("Empresa", back_populates="configuraciones_correo")
+

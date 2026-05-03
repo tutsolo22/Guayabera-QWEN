@@ -115,8 +115,8 @@ class PolizaContable(Base):
     
     # Metadata
     referencia_documento = Column(String(100))  # Reference to related document
-    usuario_elaboro_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # User who created
-    usuario_autorizo_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # User who authorized
+    usuario_elaboro_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # User who created
+    usuario_autorizo_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # User who authorized
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -136,7 +136,7 @@ class MovimientoContable(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     poliza_id = Column(UUID(as_uuid=True), ForeignKey("acc_poliza_contable.id"), nullable=False)
-    cuenta_id = Column(UUID(as_uuid=True), ForeignKey("fin_cuenta_contable.id"), nullable=False)
+    cuenta_id = Column(UUID(as_uuid=True), ForeignKey("cont_cuenta.id"), nullable=False)  # Changed from fin_cuenta_contable to cont_cuenta
     
     # Movement details
     tipo_movimiento = Column(SQLEnum(TipoMovimiento), nullable=False)  # Debe/Haber
@@ -176,7 +176,7 @@ class EstadoFinanciero(Base):
     formato = Column(String(20), default="vertical")  # vertical, horizontal
     
     # Status
-    generado_por_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))
+    generado_por_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from auth_usuario to seg_usuario
     fecha_generacion = Column(DateTime(timezone=True), server_default=func.now())
     verificado = Column(Boolean, default=False)
     fecha_verificacion = Column(DateTime(timezone=True))
@@ -246,7 +246,7 @@ class PartidaPresupuestal(Base):
     # Period and classification
     periodo_fiscal_id = Column(UUID(as_uuid=True), ForeignKey("acc_periodo_fiscal.id"), nullable=False)
     centro_costo_id = Column(UUID(as_uuid=True), ForeignKey("acc_centro_costo.id"), nullable=False)
-    cuenta_contable_id = Column(UUID(as_uuid=True), ForeignKey("fin_cuenta_contable.id"), nullable=False)
+    cuenta_contable_id = Column(UUID(as_uuid=True), ForeignKey("cont_cuenta.id"), nullable=False)  # Changed from fin_cuenta_contable to cont_cuenta
     
     # Status
     activo = Column(Boolean, default=True)

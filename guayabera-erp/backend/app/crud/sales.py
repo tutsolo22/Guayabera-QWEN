@@ -7,12 +7,17 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from uuid import UUID
+from datetime import date
+from decimal import Decimal
 
 from app.models.sales import (
-    Cliente, DireccionEntrega, Almacen, MovimientoInventario,
-    TransferenciaInventario, DetalleTransferencia, Pedido, DetallePedido,
-    Venta, Pago, BusquedaAvanzada
+    Cliente, DireccionEntrega, 
+    Pedido, DetallePedido,
+    Venta, Pago, BusquedaAvanzada, SalesConfiguration, DiscountRule,
+    LoyaltyProgram, PriceList, PriceListItem
 )
+# Importar clases desde el módulo correcto
+from app.models.supply_chain import Almacen, MovimientoInventario, OrdenCompra, OrdenCompraDetalle, Proveedor, TransferenciaInventario, DetalleTransferencia
 from app.schemas.sales import (
     ClienteCreate, ClienteUpdate,
     DireccionEntregaCreate, DireccionEntregaUpdate,
@@ -24,7 +29,12 @@ from app.schemas.sales import (
     DetallePedidoCreate, DetallePedidoUpdate,
     VentaCreate, VentaUpdate,
     PagoCreate, PagoUpdate,
-    BusquedaAvanzadaCreate, BusquedaAvanzadaUpdate
+    BusquedaAvanzadaCreate, BusquedaAvanzadaUpdate,
+    SalesConfigurationCreate, SalesConfigurationUpdate,
+    DiscountRuleCreate, DiscountRuleUpdate,
+    LoyaltyProgramCreate, LoyaltyProgramUpdate,
+    PriceListCreate, PriceListUpdate,
+    PriceListItemCreate, PriceListItemUpdate
 )
 
 
@@ -647,6 +657,396 @@ def delete_pago(db: Session, pago_id: UUID) -> bool:
 # ============================================================================
 # ADVANCED SEARCH CRUD
 # ============================================================================
+
+
+# ============================================================================
+# SALES CONFIGURATION CRUD
+# ============================================================================
+def create_sales_configuration(db: Session, config: SalesConfigurationCreate) -> SalesConfiguration:
+    db_config = SalesConfiguration(**config.dict(exclude_unset=True))
+    db.add(db_config)
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+
+def get_sales_configuration(db: Session, company_id: int) -> Optional[SalesConfiguration]:
+    return db.query(SalesConfiguration).filter(SalesConfiguration.company_id == company_id).first()
+
+
+def update_sales_configuration(
+    db: Session, 
+    company_id: int, 
+    config_update: SalesConfigurationUpdate
+) -> Optional[SalesConfiguration]:
+    db_config = db.query(SalesConfiguration).filter(SalesConfiguration.company_id == company_id).first()
+    if db_config:
+        update_data = config_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_config, field, value)
+        db.commit()
+        db.refresh(db_config)
+    return db_config
+
+
+def delete_sales_configuration(db: Session, company_id: int) -> bool:
+    db_config = db.query(SalesConfiguration).filter(SalesConfiguration.company_id == company_id).first()
+    if db_config:
+        db.delete(db_config)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# DISCOUNT RULE CRUD
+# ============================================================================
+def create_discount_rule(db: Session, rule: DiscountRuleCreate) -> DiscountRule:
+    db_rule = DiscountRule(**rule.dict(exclude_unset=True))
+    db.add(db_rule)
+    db.commit()
+    db.refresh(db_rule)
+    return db_rule
+
+
+def get_discount_rule(db: Session, rule_id: int) -> Optional[DiscountRule]:
+    return db.query(DiscountRule).filter(DiscountRule.id == rule_id).first()
+
+
+def get_discount_rules_by_company(
+    db: Session, 
+    company_id: int, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[DiscountRule]:
+    return (
+        db.query(DiscountRule)
+        .filter(DiscountRule.company_id == company_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def update_discount_rule(
+    db: Session, 
+    rule_id: int, 
+    rule_update: DiscountRuleUpdate
+) -> Optional[DiscountRule]:
+    db_rule = db.query(DiscountRule).filter(DiscountRule.id == rule_id).first()
+    if db_rule:
+        update_data = rule_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_rule, field, value)
+        db.commit()
+        db.refresh(db_rule)
+    return db_rule
+
+
+def delete_discount_rule(db: Session, rule_id: int) -> bool:
+    db_rule = db.query(DiscountRule).filter(DiscountRule.id == rule_id).first()
+    if db_rule:
+        db.delete(db_rule)
+        db.commit()
+        return True
+    return False
+
+
+def get_active_discount_rules(db: Session, company_id: int) -> List[DiscountRule]:
+    now = datetime.utcnow()
+    return (
+        db.query(DiscountRule)
+        .filter(
+            and_(
+                DiscountRule.company_id == company_id,
+                DiscountRule.is_active == True,
+                or_(
+                    DiscountRule.start_date <= now,
+                    DiscountRule.start_date.is_(None)
+                ),
+                or_(
+                    DiscountRule.end_date >= now,
+                    DiscountRule.end_date.is_(None)
+                )
+            )
+        )
+        .order_by(DiscountRule.priority.desc())
+        .all()
+    )
+
+
+# ============================================================================
+# LOYALTY PROGRAM CRUD
+# ============================================================================
+def create_loyalty_program(db: Session, program: LoyaltyProgramCreate) -> LoyaltyProgram:
+    db_program = LoyaltyProgram(**program.dict(exclude_unset=True))
+    db.add(db_program)
+    db.commit()
+    db.refresh(db_program)
+    return db_program
+
+
+def get_loyalty_program(db: Session, program_id: int) -> Optional[LoyaltyProgram]:
+    return db.query(LoyaltyProgram).filter(LoyaltyProgram.id == program_id).first()
+
+
+def get_loyalty_programs_by_company(
+    db: Session, 
+    company_id: int, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[LoyaltyProgram]:
+    return (
+        db.query(LoyaltyProgram)
+        .filter(LoyaltyProgram.company_id == company_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def get_default_loyalty_program(db: Session, company_id: int) -> Optional[LoyaltyProgram]:
+    return (
+        db.query(LoyaltyProgram)
+        .filter(
+            and_(
+                LoyaltyProgram.company_id == company_id,
+                LoyaltyProgram.is_default == True,
+                LoyaltyProgram.is_active == True
+            )
+        )
+        .first()
+    )
+
+
+def update_loyalty_program(
+    db: Session, 
+    program_id: int, 
+    program_update: LoyaltyProgramUpdate
+) -> Optional[LoyaltyProgram]:
+    db_program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == program_id).first()
+    if db_program:
+        update_data = program_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_program, field, value)
+        
+        # Si se está activando como predeterminado, desactivar otros
+        if update_data.get('is_default'):
+            db.query(LoyaltyProgram).filter(
+                and_(
+                    LoyaltyProgram.company_id == db_program.company_id,
+                    LoyaltyProgram.id != program_id
+                )
+            ).update({"is_default": False})
+        
+        db.commit()
+        db.refresh(db_program)
+    return db_program
+
+
+def delete_loyalty_program(db: Session, program_id: int) -> bool:
+    db_program = db.query(LoyaltyProgram).filter(LoyaltyProgram.id == program_id).first()
+    if db_program:
+        db.delete(db_program)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# PRICE LIST CRUD
+# ============================================================================
+def create_price_list(db: Session, price_list: PriceListCreate) -> PriceList:
+    db_price_list = PriceList(**price_list.dict(exclude_unset=True))
+    
+    # Si se está creando como predeterminada, desactivar otras
+    if price_list.is_default:
+        db.query(PriceList).filter(
+            and_(
+                PriceList.company_id == price_list.company_id,
+                PriceList.id != getattr(price_list, 'id', None)
+            )
+        ).update({"is_default": False})
+    
+    db.add(db_price_list)
+    db.commit()
+    db.refresh(db_price_list)
+    return db_price_list
+
+
+def get_price_list(db: Session, price_list_id: int) -> Optional[PriceList]:
+    return db.query(PriceList).filter(PriceList.id == price_list_id).first()
+
+
+def get_price_lists_by_company(
+    db: Session, 
+    company_id: int, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[PriceList]:
+    return (
+        db.query(PriceList)
+        .filter(PriceList.company_id == company_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def get_default_price_list(db: Session, company_id: int) -> Optional[PriceList]:
+    return (
+        db.query(PriceList)
+        .filter(
+            and_(
+                PriceList.company_id == company_id,
+                PriceList.is_default == True,
+                PriceList.is_active == True
+            )
+        )
+        .first()
+    )
+
+
+def update_price_list(
+    db: Session, 
+    price_list_id: int, 
+    price_list_update: PriceListUpdate
+) -> Optional[PriceList]:
+    db_price_list = db.query(PriceList).filter(PriceList.id == price_list_id).first()
+    if db_price_list:
+        update_data = price_list_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_price_list, field, value)
+        
+        # Si se está activando como predeterminada, desactivar otras
+        if update_data.get('is_default'):
+            db.query(PriceList).filter(
+                and_(
+                    PriceList.company_id == db_price_list.company_id,
+                    PriceList.id != price_list_id
+                )
+            ).update({"is_default": False})
+        
+        db.commit()
+        db.refresh(db_price_list)
+    return db_price_list
+
+
+def delete_price_list(db: Session, price_list_id: int) -> bool:
+    db_price_list = db.query(PriceList).filter(PriceList.id == price_list_id).first()
+    
+    # No permitir eliminar la lista predeterminada si no hay otras
+    other_lists = db.query(PriceList).filter(
+        and_(
+            PriceList.company_id == db_price_list.company_id,
+            PriceList.id != price_list_id
+        )
+    ).count()
+    
+    if db_price_list and (not db_price_list.is_default or other_lists > 0):
+        db.delete(db_price_list)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# PRICE LIST ITEM CRUD
+# ============================================================================
+def create_price_list_item(db: Session, item: PriceListItemCreate) -> PriceListItem:
+    db_item = PriceListItem(**item.dict(exclude_unset=True))
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+
+def get_price_list_item(db: Session, item_id: int) -> Optional[PriceListItem]:
+    return db.query(PriceListItem).filter(PriceListItem.id == item_id).first()
+
+
+def get_price_list_items_by_list(
+    db: Session, 
+    price_list_id: int, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[PriceListItem]:
+    return (
+        db.query(PriceListItem)
+        .filter(PriceListItem.price_list_id == price_list_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def get_price_list_item_by_product_and_list(
+    db: Session, 
+    price_list_id: int, 
+    product_variant_id: int
+) -> Optional[PriceListItem]:
+    return (
+        db.query(PriceListItem)
+        .filter(
+            and_(
+                PriceListItem.price_list_id == price_list_id,
+                PriceListItem.product_variant_id == product_variant_id
+            )
+        )
+        .first()
+    )
+
+
+def update_price_list_item(
+    db: Session, 
+    item_id: int, 
+    item_update: PriceListItemUpdate
+) -> Optional[PriceListItem]:
+    db_item = db.query(PriceListItem).filter(PriceListItem.id == item_id).first()
+    if db_item:
+        update_data = item_update.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_item, field, value)
+        db.commit()
+        db.refresh(db_item)
+    return db_item
+
+
+def delete_price_list_item(db: Session, item_id: int) -> bool:
+    db_item = db.query(PriceListItem).filter(PriceListItem.id == item_id).first()
+    if db_item:
+        db.delete(db_item)
+        db.commit()
+        return True
+    return False
+
+
+def get_current_price_for_product(
+    db: Session, 
+    price_list_id: int, 
+    product_variant_id: int
+) -> Optional[Decimal]:
+    """Obtiene el precio actual para un producto en una lista de precios específica"""
+    now = datetime.utcnow()
+    item = (
+        db.query(PriceListItem)
+        .filter(
+            and_(
+                PriceListItem.price_list_id == price_list_id,
+                PriceListItem.product_variant_id == product_variant_id,
+                or_(
+                    PriceListItem.valid_from <= now,
+                    PriceListItem.valid_from.is_(None)
+                ),
+                or_(
+                    PriceListItem.valid_until >= now,
+                    PriceListItem.valid_until.is_(None)
+                )
+            )
+        )
+        .first()
+    )
+    return item.price if item else None
 
 def create_busqueda_avanzada(db: Session, busqueda_data: BusquedaAvanzadaCreate) -> BusquedaAvanzada:
     """Create a new advanced search record"""

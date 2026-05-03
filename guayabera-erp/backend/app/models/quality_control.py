@@ -101,7 +101,7 @@ class InspeccionCalidad(Base):
     
     # Related entities
     producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"))  # Product being inspected
-    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_lote_producto.id"))  # Lot being inspected
+    lote_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto_lote.id"))  # Lot being inspected
     orden_produccion_id = Column(UUID(as_uuid=True), ForeignKey("prod_orden_produccion.id"))  # Production order
     plan_muestreo_id = Column(UUID(as_uuid=True), ForeignKey("qc_plan_muestreo.id"))  # Sampling plan used
     responsable_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Employee performing inspection
@@ -132,7 +132,7 @@ class InspeccionCalidad(Base):
     
     # Relationships
     producto = relationship("Producto")
-    lote = relationship("LoteProducto")
+    lote = relationship("ProductoLote")
     orden_produccion = relationship("OrdenProduccion")
     plan_muestreo = relationship("PlanMuestreo", back_populates="inspecciones")
     responsable = relationship("Empleado")
