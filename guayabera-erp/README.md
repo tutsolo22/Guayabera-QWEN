@@ -185,7 +185,7 @@ Contenedores: Docker + Docker Compose
 OCR:          Tesseract + OpenCV
 ```
 
-```markdown
+````
 <<<<<<< SEARCH
 ├── backend/                 # API FastAPI
 │   ├── app/
