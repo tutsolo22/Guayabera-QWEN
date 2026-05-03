@@ -19,15 +19,15 @@ from app.schemas.reports import (
 from app.crud.reports import (
     create_reporte, get_reporte, get_reportes,
     update_reporte, delete_reporte,
-    create_reporte_rh, get_reporte_rh, get_reportes_rh,
+    create_reporte_rh, get_reporte_rh, get_reportes_rh_by_reporte,
     update_reporte_rh, delete_reporte_rh,
-    create_reporte_produccion, get_reporte_produccion, get_reportes_produccion,
+    create_reporte_produccion, get_reporte_produccion, get_reportes_produccion_by_reporte,
     update_reporte_produccion, delete_reporte_produccion,
-    create_reporte_ventas, get_reporte_ventas, get_reportes_ventas,
+    create_reporte_ventas, get_reporte_ventas, get_reportes_ventas_by_reporte,
     update_reporte_ventas, delete_reporte_ventas,
-    create_reporte_inventario, get_reporte_inventario, get_reportes_inventario,
+    create_reporte_inventario, get_reporte_inventario, get_reportes_inventario_by_reporte,
     update_reporte_inventario, delete_reporte_inventario,
-    create_reporte_finanzas, get_reporte_finanzas, get_reportes_finanzas,
+    create_reporte_finanzas, get_reporte_finanzas, get_reportes_finanzas_by_reporte,
     update_reporte_finanzas, delete_reporte_finanzas,
     create_dashboard_widget, get_dashboard_widget, get_dashboard_widgets,
     update_dashboard_widget, delete_dashboard_widget,
@@ -193,7 +193,7 @@ def get_reporte_produccion_endpoint(
 
 
 @router.get("/produccion/reporte/{reporte_id}", response_model=List[ReporteProduccionResponse])
-def get_reportes_produccion_by_reporte_endpoint(
+def get_reportes_produccion(
     reporte_id: str,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -256,7 +256,7 @@ def get_reporte_ventas_endpoint(
 
 
 @router.get("/ventas/reporte/{reporte_id}", response_model=List[ReporteVentasResponse])
-def get_reportes_ventas_by_reporte_endpoint(
+def get_reporte_ventas_by_reporte_endpoint(
     reporte_id: str,
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)

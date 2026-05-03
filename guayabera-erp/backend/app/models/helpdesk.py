@@ -77,7 +77,7 @@ class TicketSoporte(Base):
     solicitante_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)  # Employee who opened the ticket
     supervisor_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Immediate supervisor of requester
     asignado_a_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Employee assigned to resolve
-    departamento_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))  # Department responsible
+    departamento_id = Column(Integer, ForeignKey("departamentos.id"))  # Changed from UUID to Integer to match departamentos table - Department responsible
     
     # Approval tracking
     autorizado_por_supervisor = Column(Boolean, default=False)
@@ -238,7 +238,7 @@ class DepartamentoSoporte(Base):
     __tablename__ = "hd_departamento_soporte"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    departamento_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"), nullable=False)
+    departamento_id = Column(Integer, ForeignKey("departamentos.id"), nullable=False)  # Changed from UUID to Integer to match departamentos table
     
     # Department details
     es_grupo_soporte = Column(Boolean, default=False)  # Is this department a support group?

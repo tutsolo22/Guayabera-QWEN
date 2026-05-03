@@ -5,6 +5,7 @@ Improves response times for frequently accessed data
 
 import json
 import redis
+from urllib.parse import urlparse
 from typing import Optional, Any, Union
 from datetime import timedelta
 from app.core.config import settings
@@ -19,12 +20,16 @@ class CacheService:
         """
         Initialize Redis connection
         """
+        # Parse the REDIS_URL to extract components
+        parsed_url = urlparse(settings.REDIS_URL)
+        
         self.redis_client = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=0,
-            decode_responses=True,
-            password=settings.REDIS_PASSWORD
+            host=parsed_url.hostname or 'localhost',
+            port=parsed_url.port or 6379,
+            username=parsed_url.username,
+            password=parsed_url.password,
+            db=int(parsed_url.path.lstrip('/')) if parsed_url.path else 0,
+            decode_responses=True
         )
     
     def set(

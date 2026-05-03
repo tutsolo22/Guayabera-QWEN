@@ -304,3 +304,29 @@ def get_historial_notificacion(db: Session, historial_id: UUID) -> Optional[Hist
 def get_historial_by_notificacion(db: Session, notificacion_id: UUID) -> List[HistorialNotificacion]:
     """Get all history for a specific notification"""
     return db.query(HistorialNotificacion).filter(HistorialNotificacion.notificacion_id == notificacion_id).order_by(HistorialNotificacion.fecha_accion).all()
+
+
+def delete_old_notifications(db: Session, cutoff_date):
+    """Delete notifications older than the specified date"""
+    from datetime import datetime
+    try:
+        # Find notifications older than the cutoff date
+        old_notifications = db.query(Notificacion).filter(
+            Notificacion.fecha_envio < cutoff_date,
+            Notificacion.activa == True  # Only consider active notifications
+        ).all()
+        
+        deleted_count = 0
+        for notification in old_notifications:
+            # Soft delete the notification
+            notification.activa = False
+            notification.deleted_at = datetime.utcnow()
+            deleted_count += 1
+        
+        db.commit()
+        print(f"Cleaned up {deleted_count} old notifications")
+        return deleted_count
+    except Exception as e:
+        print(f"Error during notification cleanup: {e}")
+        db.rollback()
+        return 0

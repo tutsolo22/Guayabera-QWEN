@@ -3,27 +3,47 @@ Inventory Management CRUD Operations
 Specialized for textile manufacturing companies
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from uuid import UUID
 
 from app.models.inventory import (
-    Categoria, Producto, UnidadMedida, Almacen, Existencia, MovimientoInventario,
-    TomaInventario, RegistroTomaInventario, DiferenciaInventario
+    CategoriaProductoTextil as Categoria, 
+    ProductoTextil, 
+    LoteProducto,
+    RecepcionCompra as RecepcionCompraInventario,
+    EtiquetaProducto,
+    TomaInventario, 
+    RegistroTomaInventario, 
+    DiferenciaInventario,
+    MovimientoInventario as MovimientoInventarioModel,
+    UnidadMedida
 )
+from app.models.supply_chain import (
+    Producto, 
+    Almacen as AlmacenSC,
+    Inventario as Existencia,
+    MovimientoInventario
+)
+from app.models.admin import Empresa
 from app.schemas.inventory import (
-    CategoriaCreate, CategoriaUpdate, CategoriaResponse,
-    ProductoCreate, ProductoUpdate, ProductoResponse,
+    CategoriaProductoTextilCreate as CategoriaCreate, 
+    CategoriaProductoTextilUpdate as CategoriaUpdate, 
+    CategoriaProductoTextilResponse as CategoriaResponse,
+    ProductoTextilCreate, ProductoTextilUpdate, ProductoTextilResponse,
     UnidadMedidaCreate, UnidadMedidaUpdate, UnidadMedidaResponse,
-    AlmacenCreate, AlmacenUpdate, AlmacenResponse,
-    ExistenciaResponse,
     TomaInventarioCreate, TomaInventarioUpdate, TomaInventarioResponse,
     RegistroTomaInventarioCreate, RegistroTomaInventarioResponse,
     DiferenciaInventarioCreate, DiferenciaInventarioUpdate, DiferenciaInventarioResponse,
     MovimientoInventarioCreate, MovimientoInventarioResponse,
-    BusquedaProductoTextil, ResultadoBusquedaProducto, ResultadoBusquedaAvanzada
+    BusquedaProductoTextil, ResultadoBusquedaProducto, ResultadoBusquedaAvanzada,
+    LoteProductoCreate, LoteProductoUpdate, LoteProductoResponse,
+    RecepcionCompraCreate, RecepcionCompraUpdate, RecepcionCompraResponse,
+    EtiquetaProductoCreate, EtiquetaProductoUpdate, EtiquetaProductoResponse
 )
+from app.schemas.supply_chain import ProductoCreate, ProductoUpdate, ProductoResponse, InventarioResponse as ExistenciaResponse
+from app.schemas.logistics import AlmacenCreate, AlmacenUpdate, AlmacenResponse
 
 
 # ============================================================================
@@ -130,6 +150,278 @@ def delete_producto(db: Session, producto_id: UUID) -> bool:
 
 
 # ============================================================================
+# PRODUCTO TEXTIL CRUD
+# ============================================================================
+
+def create_producto_textil(db: Session, producto_textil_data: ProductoTextilCreate) -> ProductoTextil:
+    """Create a new textile product"""
+    db_producto_textil = ProductoTextil(**producto_textil_data.model_dump())
+    db.add(db_producto_textil)
+    db.commit()
+    db.refresh(db_producto_textil)
+    return db_producto_textil
+
+
+def get_producto_textil(db: Session, producto_textil_id: UUID) -> Optional[ProductoTextil]:
+    """Get a textile product by ID"""
+    return db.query(ProductoTextil).filter(ProductoTextil.id == producto_textil_id).first()
+
+
+def get_productos_textiles(db: Session, skip: int = 0, limit: int = 100) -> List[ProductoTextil]:
+    """Get list of textile products"""
+    return db.query(ProductoTextil).offset(skip).limit(limit).all()
+
+
+def update_producto_textil(
+    db: Session, 
+    producto_textil_id: UUID, 
+    producto_textil_data: ProductoTextilUpdate
+) -> Optional[ProductoTextil]:
+    """Update a textile product"""
+    db_producto_textil = get_producto_textil(db, producto_textil_id)
+    if db_producto_textil:
+        update_data = producto_textil_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_producto_textil, field, value)
+        db.commit()
+        db.refresh(db_producto_textil)
+    return db_producto_textil
+
+
+def delete_producto_textil(db: Session, producto_textil_id: UUID) -> bool:
+    """Delete a textile product"""
+    db_producto_textil = get_producto_textil(db, producto_textil_id)
+    if db_producto_textil:
+        db.delete(db_producto_textil)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# CATEGORIA PRODUCTO TEXTIL CRUD
+# ============================================================================
+
+def create_categoria_producto_textil(db: Session, categoria_data: CategoriaCreate) -> Categoria:
+    """Create a new textile product category"""
+    db_categoria = Categoria(**categoria_data.model_dump())
+    db.add(db_categoria)
+    db.commit()
+    db.refresh(db_categoria)
+    return db_categoria
+
+
+def get_categoria_producto_textil(db: Session, categoria_id: UUID) -> Optional[Categoria]:
+    """Get a textile product category by ID"""
+    return db.query(Categoria).filter(Categoria.id == categoria_id).first()
+
+
+def get_categorias_producto_textil(db: Session, skip: int = 0, limit: int = 100) -> List[Categoria]:
+    """Get list of textile product categories"""
+    return db.query(Categoria).offset(skip).limit(limit).all()
+
+
+def update_categoria_producto_textil(
+    db: Session, 
+    categoria_id: UUID, 
+    categoria_data: CategoriaUpdate
+) -> Optional[Categoria]:
+    """Update a textile product category"""
+    db_categoria = get_categoria(db, categoria_id)
+    if db_categoria:
+        update_data = categoria_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_categoria, field, value)
+        db.commit()
+        db.refresh(db_categoria)
+    return db_categoria
+
+
+def delete_categoria_producto_textil(db: Session, categoria_id: UUID) -> bool:
+    """Delete a textile product category"""
+    db_categoria = get_categoria(db, categoria_id)
+    if db_categoria:
+        db.delete(db_categoria)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# LOTE PRODUCTO CRUD
+# ============================================================================
+
+def create_lote_producto(db: Session, lote_data: LoteProductoCreate) -> LoteProducto:
+    """Create a new product batch"""
+    db_lote = LoteProducto(**lote_data.model_dump())
+    db.add(db_lote)
+    db.commit()
+    db.refresh(db_lote)
+    return db_lote
+
+
+def get_lote_producto(db: Session, lote_id: UUID) -> Optional[LoteProducto]:
+    """Get a product batch by ID"""
+    return db.query(LoteProducto).filter(LoteProducto.id == lote_id).first()
+
+
+def update_lote_producto(
+    db: Session, 
+    lote_id: UUID, 
+    lote_data: LoteProductoUpdate
+) -> Optional[LoteProducto]:
+    """Update a product batch"""
+    db_lote = get_lote_producto(db, lote_id)
+    if db_lote:
+        update_data = lote_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_lote, field, value)
+        db.commit()
+        db.refresh(db_lote)
+    return db_lote
+
+
+def delete_lote_producto(db: Session, lote_id: UUID) -> bool:
+    """Delete a product batch"""
+    db_lote = get_lote_producto(db, lote_id)
+    if db_lote:
+        db.delete(db_lote)
+        db.commit()
+        return True
+    return False
+
+
+def get_lotes_by_producto_textil(db: Session, producto_textil_id: UUID) -> List[LoteProducto]:
+    """Get all batches for a textile product"""
+    return db.query(LoteProducto).filter(
+        LoteProducto.producto_textil_id == producto_textil_id
+    ).all()
+
+
+def get_lotes_by_proveedor(db: Session, proveedor_id: UUID) -> List[LoteProducto]:
+    """Get all batches from a specific supplier"""
+    return db.query(LoteProducto).filter(
+        LoteProducto.proveedor_id == proveedor_id
+    ).all()
+
+
+# ============================================================================
+# RECEPCION COMPRA CRUD
+# ============================================================================
+
+def create_recepcion_compra(db: Session, recepcion_data: RecepcionCompraCreate) -> RecepcionCompraInventario:
+    """Create a new purchase reception"""
+    db_recepcion = RecepcionCompraInventario(**recepcion_data.model_dump())
+    db.add(db_recepcion)
+    db.commit()
+    db.refresh(db_recepcion)
+    return db_recepcion
+
+
+def get_recepcion_compra(db: Session, recepcion_id: UUID) -> Optional[RecepcionCompraInventario]:
+    """Get a purchase reception by ID"""
+    return db.query(RecepcionCompraInventario).filter(RecepcionCompraInventario.id == recepcion_id).first()
+
+
+def update_recepcion_compra(
+    db: Session, 
+    recepcion_id: UUID, 
+    recepcion_data: RecepcionCompraUpdate
+) -> Optional[RecepcionCompraInventario]:
+    """Update a purchase reception"""
+    db_recepcion = get_recepcion_compra(db, recepcion_id)
+    if db_recepcion:
+        update_data = recepcion_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_recepcion, field, value)
+        db.commit()
+        db.refresh(db_recepcion)
+    return db_recepcion
+
+
+def delete_recepcion_compra(db: Session, recepcion_id: UUID) -> bool:
+    """Delete a purchase reception"""
+    db_recepcion = get_recepcion_compra(db, recepcion_id)
+    if db_recepcion:
+        db.delete(db_recepcion)
+        db.commit()
+        return True
+    return False
+
+
+def get_recepciones_by_orden_compra(db: Session, orden_compra_id: UUID) -> List[RecepcionCompraInventario]:
+    """Get all receptions for a specific purchase order"""
+    return db.query(RecepcionCompraInventario).filter(
+        RecepcionCompraInventario.orden_compra_id == orden_compra_id
+    ).all()
+
+
+def get_recepciones_by_estado(db: Session, estado: str) -> List[RecepcionCompraInventario]:
+    """Get all receptions by state"""
+    return db.query(RecepcionCompraInventario).filter(
+        RecepcionCompraInventario.estado == estado
+    ).all()
+
+
+# ============================================================================
+# ETIQUETA PRODUCTO CRUD
+# ============================================================================
+
+def create_etiqueta_producto(db: Session, etiqueta_data: EtiquetaProductoCreate) -> EtiquetaProducto:
+    """Create a new product label"""
+    db_etiqueta = EtiquetaProducto(**etiqueta_data.model_dump())
+    db.add(db_etiqueta)
+    db.commit()
+    db.refresh(db_etiqueta)
+    return db_etiqueta
+
+
+def get_etiqueta_producto(db: Session, etiqueta_id: UUID) -> Optional[EtiquetaProducto]:
+    """Get a product label by ID"""
+    return db.query(EtiquetaProducto).filter(EtiquetaProducto.id == etiqueta_id).first()
+
+
+def update_etiqueta_producto(
+    db: Session, 
+    etiqueta_id: UUID, 
+    etiqueta_data: EtiquetaProductoUpdate
+) -> Optional[EtiquetaProducto]:
+    """Update a product label"""
+    db_etiqueta = get_etiqueta_producto(db, etiqueta_id)
+    if db_etiqueta:
+        update_data = etiqueta_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_etiqueta, field, value)
+        db.commit()
+        db.refresh(db_etiqueta)
+    return db_etiqueta
+
+
+def delete_etiqueta_producto(db: Session, etiqueta_id: UUID) -> bool:
+    """Delete a product label"""
+    db_etiqueta = get_etiqueta_producto(db, etiqueta_id)
+    if db_etiqueta:
+        db.delete(db_etiqueta)
+        db.commit()
+        return True
+    return False
+
+
+def get_etiquetas_by_lote_producto(db: Session, lote_producto_id: UUID) -> List[EtiquetaProducto]:
+    """Get all labels for a specific product batch"""
+    return db.query(EtiquetaProducto).filter(
+        EtiquetaProducto.lote_producto_id == lote_producto_id
+    ).all()
+
+
+def get_etiquetas_by_producto_textil(db: Session, producto_textil_id: UUID) -> List[EtiquetaProducto]:
+    """Get all labels for a specific textile product"""
+    return db.query(EtiquetaProducto).filter(
+        EtiquetaProducto.producto_textil_id == producto_textil_id
+    ).all()
+
+
+# ============================================================================
 # UNIT OF MEASURE CRUD
 # ============================================================================
 
@@ -187,35 +479,35 @@ def delete_unidad_medida(db: Session, unidad_id: UUID) -> bool:
 # WAREHOUSE CRUD
 # ============================================================================
 
-def create_almacen(db: Session, almacen_data: AlmacenCreate) -> Almacen:
+def create_almacen(db: Session, almacen_data: AlmacenCreate) -> AlmacenSC:
     """Create a new warehouse"""
-    db_almacen = Almacen(**almacen_data.model_dump())
+    db_almacen = AlmacenSC(**almacen_data.model_dump())
     db.add(db_almacen)
     db.commit()
     db.refresh(db_almacen)
     return db_almacen
 
 
-def get_almacen(db: Session, almacen_id: UUID) -> Optional[Almacen]:
+def get_almacen(db: Session, almacen_id: UUID) -> Optional[AlmacenSC]:
     """Get a warehouse by ID"""
-    return db.query(Almacen).filter(Almacen.id == almacen_id).first()
+    return db.query(AlmacenSC).filter(AlmacenSC.id == almacen_id).first()
 
 
-def get_almacen_by_codigo(db: Session, codigo: str) -> Optional[Almacen]:
+def get_almacen_by_codigo(db: Session, codigo: str) -> Optional[AlmacenSC]:
     """Get a warehouse by code"""
-    return db.query(Almacen).filter(Almacen.codigo == codigo).first()
+    return db.query(AlmacenSC).filter(AlmacenSC.codigo == codigo).first()
 
 
-def get_almacenes(db: Session, skip: int = 0, limit: int = 100) -> List[Almacen]:
+def get_almacenes(db: Session, skip: int = 0, limit: int = 100) -> List[AlmacenSC]:
     """Get list of warehouses"""
-    return db.query(Almacen).offset(skip).limit(limit).all()
+    return db.query(AlmacenSC).offset(skip).limit(limit).all()
 
 
 def update_almacen(
     db: Session, 
     almacen_id: UUID, 
     almacen_data: AlmacenUpdate
-) -> Optional[Almacen]:
+) -> Optional[AlmacenSC]:
     """Update a warehouse"""
     db_almacen = get_almacen(db, almacen_id)
     if db_almacen:
@@ -362,10 +654,10 @@ def buscar_productos_textiles_avanzada(
         Producto.modelo.label("modelo"),
         Producto.color.label("color"),
         Producto.talla.label("talla"),
-        Almacen.id.label("almacen_id"),
-        Almacen.nombre.label("almacen_nombre"),
-        Almacen.empresa_id.label("empresa_id"),
-        Almacen.empresa_nombre.label("empresa_nombre"),
+        AlmacenSC.id.label("almacen_id"),
+        AlmacenSC.nombre.label("almacen_nombre"),
+        Empresa.id.label("empresa_id"),
+        Empresa.nombre.label("empresa_nombre"),
         Existencia.cantidad.label("cantidad_disponible"),
         Categoria.nombre.label("categoria_producto"),
         Producto.sobrenombre_1.label("sobrenombre_1"),
@@ -373,7 +665,9 @@ def buscar_productos_textiles_avanzada(
     ).join(
         Existencia, Existencia.producto_id == Producto.id
     ).join(
-        Almacen, Almacen.id == Existencia.almacen_id
+        AlmacenSC, AlmacenSC.id == Existencia.almacen_id
+    ).join(
+        Empresa, Empresa.id == AlmacenSC.empresa_id
     ).join(
         Categoria, Categoria.id == Producto.categoria_id
     )
@@ -386,9 +680,9 @@ def buscar_productos_textiles_avanzada(
     if busqueda.talla:
         query = query.filter(Producto.talla.ilike(f"%{busqueda.talla}%"))
     if busqueda.almacen_id:
-        query = query.filter(Almacen.id == busqueda.almacen_id)
+        query = query.filter(AlmacenSC.id == busqueda.almacen_id)
     if busqueda.empresa_id:
-        query = query.filter(Almacen.empresa_id == busqueda.empresa_id)
+        query = query.filter(Empresa.id == busqueda.empresa_id)
     if busqueda.categoria_producto:
         query = query.filter(Categoria.nombre.ilike(f"%{busqueda.categoria_producto}%"))
     if busqueda.codigo_producto:

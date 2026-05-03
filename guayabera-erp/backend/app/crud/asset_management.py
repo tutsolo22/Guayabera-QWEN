@@ -4,20 +4,25 @@ Specialized for textile manufacturing assets
 """
 
 from typing import List, Optional
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from uuid import UUID
+from decimal import Decimal
 
 from app.models.asset_management import (
     CategoriaActivo, Activo, MantenimientoActivo,
-    DepreciacionActivo, HistorialAsignacion
+    DepreciacionActivo, HistorialAsignacion, ProveedorActivo, ContratoMantenimiento
 )
 from app.schemas.asset_management import (
     CategoriaActivoCreate, CategoriaActivoUpdate,
     ActivoCreate, ActivoUpdate,
     MantenimientoActivoCreate, MantenimientoActivoUpdate,
     DepreciacionActivoCreate, DepreciacionActivoUpdate,
-    HistorialAsignacionCreate, HistorialAsignacionUpdate
+    HistorialAsignacionCreate, HistorialAsignacionUpdate,
+    ProveedorActivoCreate, ProveedorActivoUpdate,
+    ContratoMantenimientoCreate, ContratoMantenimientoUpdate,
+    MantenimientoRequest, MantenimientoResponse, DepreciacionResponse
 )
 
 
@@ -184,94 +189,6 @@ def delete_activo(db: Session, activo_id: UUID) -> bool:
 
 
 # ============================================================================
-# ASSET MAINTENANCE CRUD
-# ============================================================================
-
-def create_mantenimiento_activo(db: Session, mantenimiento_data: MantenimientoActivoCreate) -> MantenimientoActivo:
-    """Create a new asset maintenance record"""
-    db_mantenimiento = MantenimientoActivo(**mantenimiento_data.model_dump())
-    db.add(db_mantenimiento)
-    db.commit()
-    db.refresh(db_mantenimiento)
-    
-    # Update the asset with the next maintenance date
-    activo = get_activo(db, mantenimiento_data.activo_id)
-    if activo and mantenimiento_data.proximo_mantenimiento:
-        activo.proximo_mantenimiento = mantenimiento_data.proximo_mantenimiento
-        activo.fecha_ultimo_mantenimiento = mantenimiento_data.fecha_realizacion or mantenimiento_data.fecha_programada
-        db.commit()
-    
-    return db_mantenimiento
-
-
-def get_mantenimiento_activo(db: Session, mantenimiento_id: UUID) -> Optional[MantenimientoActivo]:
-    """Get an asset maintenance record by ID"""
-    return db.query(MantenimientoActivo).filter(
-        MantenimientoActivo.id == mantenimiento_id
-    ).first()
-
-
-def get_mantenimientos_by_activo(
-    db: Session, 
-    activo_id: UUID, 
-    skip: int = 0, 
-    limit: int = 100,
-    estado: Optional[str] = None
-) -> List[MantenimientoActivo]:
-    """Get all maintenance records for a specific asset"""
-    query = db.query(MantenimientoActivo).filter(
-        MantenimientoActivo.activo_id == activo_id
-    ).order_by(MantenimientoActivo.fecha_programada.desc())
-    
-    if estado:
-        query = query.filter(MantenimientoActivo.estado == estado)
-    
-    return query.offset(skip).limit(limit).all()
-
-
-def get_mantenimientos_programados(
-    db: Session, 
-    fecha_inicio: date, 
-    fecha_fin: date,
-    skip: int = 0, 
-    limit: int = 100
-) -> List[MantenimientoActivo]:
-    """Get all scheduled maintenance records within a date range"""
-    return db.query(MantenimientoActivo).filter(
-        and_(
-            MantenimientoActivo.fecha_programada >= fecha_inicio,
-            MantenimientoActivo.fecha_programada <= fecha_fin
-        )
-    ).offset(skip).limit(limit).all()
-
-
-def update_mantenimiento_activo(
-    db: Session, 
-    mantenimiento_id: UUID, 
-    mantenimiento_data: MantenimientoActivoUpdate
-) -> Optional[MantenimientoActivo]:
-    """Update an asset maintenance record"""
-    db_mantenimiento = get_mantenimiento_activo(db, mantenimiento_id)
-    if db_mantenimiento:
-        update_data = mantenimiento_data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(db_mantenimiento, field, value)
-        db.commit()
-        db.refresh(db_mantenimiento)
-    return db_mantenimiento
-
-
-def delete_mantenimiento_activo(db: Session, mantenimiento_id: UUID) -> bool:
-    """Delete an asset maintenance record"""
-    db_mantenimiento = get_mantenimiento_activo(db, mantenimiento_id)
-    if db_mantenimiento:
-        db.delete(db_mantenimiento)
-        db.commit()
-        return True
-    return False
-
-
-# ============================================================================
 # ASSET DEPRECIATION CRUD
 # ============================================================================
 
@@ -371,80 +288,326 @@ def delete_depreciacion_activo(db: Session, depreciacion_id: UUID) -> bool:
 
 
 # ============================================================================
-# ASSIGNMENT HISTORY CRUD
+# ASSET MAINTENANCE HISTORY CRUD (HistorialMantenimientoActivo)
 # ============================================================================
 
-def create_historial_asignacion(
-    db: Session, 
-    historial_data: HistorialAsignacionCreate
-) -> HistorialAsignacion:
-    """Create a new asset assignment history record"""
-    db_historial = HistorialAsignacion(**historial_data.model_dump())
-    db.add(db_historial)
+def create_historial_mantenimiento(db: Session, mantenimiento_data: MantenimientoActivoCreate) -> MantenimientoActivo:
+    """Create a new asset maintenance record"""
+    db_mantenimiento = MantenimientoActivo(**mantenimiento_data.model_dump())
+    db.add(db_mantenimiento)
     db.commit()
-    db.refresh(db_historial)
+    db.refresh(db_mantenimiento)
     
-    # Update the asset with new assignment details
-    activo = get_activo(db, historial_data.activo_id)
-    if activo:
-        if historial_data.empleado_nuevo_id:
-            activo.empleado_asignado_id = historial_data.empleado_nuevo_id
-        if historial_data.departamento_nuevo_id:
-            activo.departamento_asignado_id = historial_data.departamento_nuevo_id
-        if historial_data.ubicacion_nueva:
-            activo.ubicacion_actual = historial_data.ubicacion_nueva
+    # Update the asset with the next maintenance date
+    activo = get_activo(db, mantenimiento_data.activo_id)
+    if activo and mantenimiento_data.proximo_mantenimiento:
+        activo.proximo_mantenimiento = mantenimiento_data.proximo_mantenimiento
+        activo.fecha_ultimo_mantenimiento = mantenimiento_data.fecha_realizacion or mantenimiento_data.fecha_programada
         db.commit()
     
-    return db_historial
+    return db_mantenimiento
 
 
-def get_historial_asignacion(db: Session, historial_id: UUID) -> Optional[HistorialAsignacion]:
-    """Get an asset assignment history record by ID"""
-    return db.query(HistorialAsignacion).filter(
-        HistorialAsignacion.id == historial_id
+def get_historial_mantenimiento(db: Session, mantenimiento_id: UUID) -> Optional[MantenimientoActivo]:
+    """Get an asset maintenance record by ID"""
+    return db.query(MantenimientoActivo).filter(
+        MantenimientoActivo.id == mantenimiento_id
     ).first()
 
 
-def get_historial_by_activo(
+def get_historiales_by_activo(
+    db: Session, 
+    activo_id: UUID, 
+    skip: int = 0, 
+    limit: int = 100,
+    estado: Optional[str] = None
+) -> List[MantenimientoActivo]:
+    """Get all maintenance records for a specific asset"""
+    query = db.query(MantenimientoActivo).filter(
+        MantenimientoActivo.activo_id == activo_id
+    ).order_by(MantenimientoActivo.fecha_programada.desc())
+    
+    if estado:
+        query = query.filter(MantenimientoActivo.estado == estado)
+    
+    return query.offset(skip).limit(limit).all()
+
+
+def update_historial_mantenimiento(
+    db: Session, 
+    mantenimiento_id: UUID, 
+    mantenimiento_data: MantenimientoActivoUpdate
+) -> Optional[MantenimientoActivo]:
+    """Update an asset maintenance record"""
+    db_mantenimiento = get_historial_mantenimiento(db, mantenimiento_id)
+    if db_mantenimiento:
+        update_data = mantenimiento_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_mantenimiento, field, value)
+        db.commit()
+        db.refresh(db_mantenimiento)
+    return db_mantenimiento
+
+
+# ============================================================================
+# ASSET ASSIGNMENT CRUD (AsignacionActivo)
+# ============================================================================
+
+def create_asignacion_activo(db: Session, asignacion_data: HistorialAsignacionCreate) -> HistorialAsignacion:
+    """Create a new asset assignment record"""
+    db_asignacion = HistorialAsignacion(**asignacion_data.model_dump())
+    db.add(db_asignacion)
+    db.commit()
+    db.refresh(db_asignacion)
+    
+    # Update the asset with new assignment details
+    activo = get_activo(db, asignacion_data.activo_id)
+    if activo:
+        if asignacion_data.empleado_nuevo_id:
+            activo.empleado_asignado_id = asignacion_data.empleado_nuevo_id
+        if asignacion_data.departamento_nuevo_id:
+            activo.departamento_asignado_id = asignacion_data.departamento_nuevo_id
+        if asignacion_data.ubicacion_nueva:
+            activo.ubicacion_actual = asignacion_data.ubicacion_nueva
+        db.commit()
+    
+    return db_asignacion
+
+
+def get_asignacion_activo(db: Session, asignacion_id: UUID) -> Optional[HistorialAsignacion]:
+    """Get an asset assignment record by ID"""
+    return db.query(HistorialAsignacion).filter(
+        HistorialAsignacion.id == asignacion_id
+    ).first()
+
+
+def get_asignaciones_by_activo(
     db: Session, 
     activo_id: UUID, 
     skip: int = 0, 
     limit: int = 100
 ) -> List[HistorialAsignacion]:
-    """Get all assignment history records for a specific asset"""
+    """Get all assignment records for a specific asset"""
     return db.query(HistorialAsignacion).filter(
         HistorialAsignacion.activo_id == activo_id
     ).order_by(HistorialAsignacion.fecha_inicio.desc()).offset(skip).limit(limit).all()
 
 
-def get_activos_by_empleado(db: Session, empleado_id: UUID) -> List[Activo]:
-    """Get all assets currently assigned to a specific employee"""
-    return db.query(Activo).filter(
-        Activo.empleado_asignado_id == empleado_id
-    ).all()
-
-
-def update_historial_asignacion(
+def get_asignaciones_by_usuario(
     db: Session, 
-    historial_id: UUID, 
-    historial_data: HistorialAsignacionUpdate
+    usuario_id: UUID, 
+    skip: int = 0, 
+    limit: int = 100
+) -> List[HistorialAsignacion]:
+    """Get all assignments for a specific user (either old or new employee)"""
+    return db.query(HistorialAsignacion).filter(
+        or_(
+            HistorialAsignacion.empleado_anterior_id == usuario_id,
+            HistorialAsignacion.empleado_nuevo_id == usuario_id
+        )
+    ).order_by(HistorialAsignacion.fecha_inicio.desc()).offset(skip).limit(limit).all()
+
+
+def update_asignacion_activo(
+    db: Session, 
+    asignacion_id: UUID, 
+    asignacion_data: HistorialAsignacionUpdate
 ) -> Optional[HistorialAsignacion]:
-    """Update an asset assignment history record"""
-    db_historial = get_historial_asignacion(db, historial_id)
-    if db_historial:
-        update_data = historial_data.model_dump(exclude_unset=True)
+    """Update an asset assignment record"""
+    db_asignacion = get_asignacion_activo(db, asignacion_id)
+    if db_asignacion:
+        update_data = asignacion_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
-            setattr(db_historial, field, value)
+            setattr(db_asignacion, field, value)
         db.commit()
-        db.refresh(db_historial)
-    return db_historial
+        db.refresh(db_asignacion)
+    return db_asignacion
 
 
-def delete_historial_asignacion(db: Session, historial_id: UUID) -> bool:
-    """Delete an asset assignment history record"""
-    db_historial = get_historial_asignacion(db, historial_id)
-    if db_historial:
-        db.delete(db_historial)
+def delete_asignacion_activo(db: Session, asignacion_id: UUID) -> bool:
+    """Delete an asset assignment record"""
+    db_asignacion = get_asignacion_activo(db, asignacion_id)
+    if db_asignacion:
+        db.delete(db_asignacion)
         db.commit()
         return True
     return False
+
+
+# ============================================================================
+# ASSET PROVIDER CRUD (ProveedorActivo)
+# ============================================================================
+
+def create_proveedor(db: Session, proveedor_data: ProveedorActivoCreate) -> ProveedorActivo:
+    """Create a new asset provider"""
+    db_proveedor = ProveedorActivo(**proveedor_data.model_dump())
+    db.add(db_proveedor)
+    db.commit()
+    db.refresh(db_proveedor)
+    return db_proveedor
+
+
+def get_proveedor(db: Session, proveedor_id: UUID) -> Optional[ProveedorActivo]:
+    """Get an asset provider by ID"""
+    return db.query(ProveedorActivo).filter(ProveedorActivo.id == proveedor_id).first()
+
+
+def get_proveedores(db: Session, skip: int = 0, limit: int = 100, activo: Optional[bool] = None) -> List[ProveedorActivo]:
+    """Get list of asset providers, optionally filtered"""
+    query = db.query(ProveedorActivo)
+    
+    if activo is not None:
+        query = query.filter(ProveedorActivo.activo == activo)
+    
+    return query.offset(skip).limit(limit).all()
+
+
+def update_proveedor(
+    db: Session, 
+    proveedor_id: UUID, 
+    proveedor_data: ProveedorActivoUpdate
+) -> Optional[ProveedorActivo]:
+    """Update an asset provider"""
+    db_proveedor = get_proveedor(db, proveedor_id)
+    if db_proveedor:
+        update_data = proveedor_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_proveedor, field, value)
+        db.commit()
+        db.refresh(db_proveedor)
+    return db_proveedor
+
+
+def delete_proveedor(db: Session, proveedor_id: UUID) -> bool:
+    """Delete an asset provider"""
+    db_proveedor = get_proveedor(db, proveedor_id)
+    if db_proveedor:
+        db.delete(db_proveedor)
+        db.commit()
+        return True
+    return False
+
+
+# ============================================================================
+# MAINTENANCE CONTRACT CRUD (ContratoMantenimiento)
+# ============================================================================
+
+def create_contrato_mantenimiento(db: Session, contrato_data: ContratoMantenimientoCreate) -> ContratoMantenimiento:
+    """Create a new maintenance contract"""
+    db_contrato = ContratoMantenimiento(**contrato_data.model_dump())
+    db.add(db_contrato)
+    db.commit()
+    db.refresh(db_contrato)
+    return db_contrato
+
+
+def get_contrato_mantenimiento(db: Session, contrato_id: UUID) -> Optional[ContratoMantenimiento]:
+    """Get a maintenance contract by ID"""
+    return db.query(ContratoMantenimiento).filter(ContratoMantenimiento.id == contrato_id).first()
+
+
+def get_contratos_by_activo(db: Session, activo_id: UUID) -> List[ContratoMantenimiento]:
+    """Get all contracts for a specific asset"""
+    # Since there isn't a direct relationship, we'll return empty for now
+    # This would need to be implemented with the many-to-many relationship if needed
+    return []
+
+
+def get_contratos_by_proveedor(db: Session, proveedor_id: UUID) -> List[ContratoMantenimiento]:
+    """Get all contracts for a specific provider"""
+    return db.query(ContratoMantenimiento).filter(
+        ContratoMantenimiento.proveedor_id == proveedor_id
+    ).all()
+
+
+def update_contrato_mantenimiento(
+    db: Session, 
+    contrato_id: UUID, 
+    contrato_data: ContratoMantenimientoUpdate
+) -> Optional[ContratoMantenimiento]:
+    """Update a maintenance contract"""
+    db_contrato = get_contrato_mantenimiento(db, contrato_id)
+    if db_contrato:
+        update_data = contrato_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_contrato, field, value)
+        db.commit()
+        db.refresh(db_contrato)
+    return db_contrato
+
+
+def delete_contrato_mantenimiento(db: Session, contrato_id: UUID) -> bool:
+    """Delete a maintenance contract"""
+    db_contrato = get_contrato_mantenimiento(db, contrato_id)
+    if db_contrato:
+        db.delete(db_contrato)
+        db.commit()
+        return True
+    return False
+
+
+def registrar_mantenimiento(db: Session, mantenimiento_request) -> MantenimientoResponse:
+    """Register a new maintenance for an asset"""
+    # Create a new maintenance record
+    mantenimiento_data = MantenimientoActivoCreate(
+        activo_id=mantenimiento_request.activo_id,
+        tipo_mantenimiento=mantenimiento_request.tipo_mantenimiento,
+        titulo=f"Mantenimiento de {mantenimiento_request.tipo_mantenimiento}",
+        descripcion=mantenimiento_request.descripcion,
+        fecha_programada=mantenimiento_request.fecha_programada,
+        costo=mantenimiento_request.costo_estimado,
+        estado="programado",
+        prioridad=mantenimiento_request.prioridad
+    )
+    
+    nuevo_mantenimiento = create_historial_mantenimiento(db, mantenimiento_data)
+    
+    # Convert to response format
+    return MantenimientoResponse(
+        id=nuevo_mantenimiento.id,
+        activo_id=nuevo_mantenimiento.activo_id,
+        tipo_mantenimiento=nuevo_mantenimiento.tipo_mantenimiento,
+        estado=nuevo_mantenimiento.estado,
+        fecha_programada=nuevo_mantenimiento.fecha_programada,
+        created_at=nuevo_mantenimiento.created_at
+    )
+
+
+def calcular_depreciacion_activos(db: Session, activo_id: UUID) -> DepreciacionResponse:
+    """Calculate depreciation for an asset"""
+    # Get the asset
+    activo = get_activo(db, activo_id)
+    if not activo:
+        raise ValueError(f"Asset with ID {activo_id} not found")
+    
+    # Calculate depreciation values
+    vida_util_anios = activo.vida_util_anios or 0
+    anios_transcurridos = 0
+    if activo.fecha_adquisicion:
+        anios_transcurridos = (func.now() - activo.fecha_adquisicion).days / 365.25
+    
+    depreciacion_acumulada = Decimal('0')
+    valor_actual = activo.valor_adquisicion or Decimal('0')
+    tasa_depreciacion = Decimal('0')
+    
+    if vida_util_anios > 0:
+        tasa_depreciacion = Decimal('100.0') / Decimal(str(vida_util_anios))
+        
+        # Simple straight-line depreciation calculation
+        depreciacion_anual = valor_actual / Decimal(str(vida_util_anios))
+        depreciacion_acumulada = min(valor_actual, depreciacion_anual * Decimal(str(min(anios_transcurridos, vida_util_anios))))
+        valor_actual = valor_actual - depreciacion_acumulada
+    
+    # Create the response
+    return DepreciacionResponse(
+        activo_id=activo.id,
+        activo_nombre=activo.nombre,
+        metodo_depreciacion=activo.metodo_depreciacion or "linea_recta",
+        valor_adquisicion=activo.valor_adquisicion or Decimal('0'),
+        valor_actual=valor_actual,
+        depreciacion_acumulada=depreciacion_acumulada,
+        vida_util_anios=vida_util_anios,
+        anios_transcurridos=int(anios_transcurridos),
+        tasa_depreciacion=float(tasa_depreciacion)
+    )
+

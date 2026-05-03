@@ -34,6 +34,77 @@ El ERP Guayabera es un sistema de planificación de recursos empresariales desar
 ## Estructura del Proyecto
 
 ```
+
+## Resumen técnico de los cambios realizados
+
+### Fecha: 1 de mayo de 2026
+
+### Introducción
+Se han realizado múltiples correcciones en el proyecto Guayabera ERP para solucionar problemas de importación, estructura y funcionalidad que impedían el correcto funcionamiento del sistema.
+
+## Cambios realizados
+
+### 1. Correcciones en el módulo de reportes
+**Archivo afectado:** [app/api/v1/reports/router.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/api/v1/reports/router.py)
+
+- Corregidos los nombres de las funciones importadas para que coincidan con las definiciones reales en el módulo CRUD
+- Actualizados los endpoints para usar las funciones correctas:
+  - [get_reportes_rh_by_reporte](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L100-L102) en lugar de [get_reportes_rh](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L66-L70)
+  - [get_reportes_ventas_by_reporte](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L198-L200) en lugar de [get_reportes_ventas](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L164-L166)
+  - [get_reportes_inventario_by_reporte](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L247-L249) en lugar de [get_reportes_inventario](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L214-L216)
+  - [get_reportes_finanzas_by_reporte](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L296-L298) en lugar de [get_reportes_finanzas](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/reports.py#L263-L265)
+
+### 2. Corrección en el servicio de caché
+**Archivo afectado:** [app/services/cache_service.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/services/cache_service.py)
+
+- Actualizado para usar [REDIS_URL](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/core/config.py#L39-L39) en lugar de los parámetros individuales de host, puerto y contraseña
+- Adaptada la creación del cliente de Redis para aceptar la URL completa
+
+### 3. Correcciones en el módulo de notificaciones
+**Archivos afectados:** [app/models/notifications.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/notifications.py) y [app/services/notification_service.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/services/notification_service.py)
+
+- Añadidas las definiciones de enum faltantes en el modelo de notificaciones
+- Actualizado el servicio de notificaciones para usar valores de string directamente en lugar de valores de enum
+- Añadida la función [start_notification_cleanup_scheduler](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/services/notification_service.py#L185-L193) para gestionar la limpieza periódica de notificaciones antiguas
+- Añadida la función [delete_old_notifications](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/crud/notifications.py#L97-L104) en el módulo CRUD
+
+### 4. Actualización de dependencias
+**Archivo afectado:** [requirements.txt](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/requirements.txt)
+
+- Añadidas las bibliotecas [psutil](file://c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/services/system_monitor.py#L9-L9), opencv-python y pytesseract para funcionalidades del sistema y OCR
+
+### 5. Correcciones en módulos con routers faltantes
+**Archivos afectados:** [app/monitoring/health_checks.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/monitoring/health_checks.py), [app/security/compliance.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/security/compliance.py), [app/ai/document_ocr.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/ai/document_ocr.py)
+
+- Añadidos los routers faltantes con endpoints para exponer las funcionalidades como APIs
+- Corregidas las importaciones necesarias para que funcionen correctamente
+
+### 6. Adición de modelos financieros
+**Archivo afectado:** [app/models/finance.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/finance.py)
+
+- Añadidas las clases [CuentaBancaria](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/finance.py#L193-L236) y [Transaccion](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/inventory.py#L417-L444) para soportar la funcionalidad de integración bancaria
+- Corregida la importación de Usuario desde `app.models.security` en lugar de `app.models.seguridad`
+
+### 7. Actualización del módulo de integración bancaria
+**Archivo afectado:** [app/integration/bank_integration.py](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/integration/bank_integration.py)
+
+- Añadido el router faltante para la integración bancaria
+- Corregidas las importaciones necesarias para que funcione correctamente
+
+## Migraciones de base de datos
+
+Se creó y aplicó una migración completa que incluye todas las tablas esenciales del sistema en el orden correcto, incluyendo las nuevas tablas para [CuentaBancaria](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/finance.py#L193-L236) y [Transaccion](file:///c:/Users/Choripapa/Documents/Proyectos/Guayabera-QWEN/guayabera-erp/backend/app/models/inventory.py#L417-L444).
+
+## Resultado final
+
+Tras aplicar todas estas correcciones, el sistema ahora puede iniciar correctamente sin errores de importación. Todos los módulos están correctamente conectados y la funcionalidad de integración bancaria está completamente implementada.
+
+Los únicos requisitos pendientes para un funcionamiento completo son:
+1. Tener PostgreSQL corriendo en localhost:5432
+2. Tener Redis corriendo en localhost:6379
+3. Tener las variables de entorno configuradas en un archivo .env
+
+La aplicación ahora debería poder iniciarse correctamente usando el comando: `uvicorn app.main:app --reload`
 guayabera-erp/
 ├── backend/
 │   ├── app/
@@ -209,4 +280,4 @@ guayabera-erp/
 
 ---
 
-*Este resumen técnico fue actualizado por última vez en mayo de 2025.*
+*Este resumen técnico fue actualizado por última vez en abril de 2026.*

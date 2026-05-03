@@ -30,7 +30,7 @@ class Equipo(Base):
     descripcion = Column(Text)
     numero_serie = Column(String(100), unique=True)
     fecha_adquisicion = Column(Date)
-    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("proveedores.id"))
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("com_proveedor.id"))
     ubicacion = Column(String(200))
     estado = Column(String(50), default="activo")
     responsable_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))

@@ -379,3 +379,30 @@ class SystemMonitor:
 
 # Create a global monitor instance
 monitor = SystemMonitor()
+
+
+# Add the FastAPI router for health checks
+from fastapi import APIRouter, Depends
+from app.core.database import get_db
+from app.core.security import get_current_user
+
+health_router = APIRouter(tags=["health"])
+
+@health_router.get("/")
+def health_check():
+    """Basic health check endpoint"""
+    return {
+        "status": "healthy",
+        "message": "Guayabera ERP API is running",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+@health_router.get("/detailed")
+def detailed_health_check(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Detailed health check with system metrics"""
+    return monitor.get_detailed_health_report(db)
+
+@health_router.get("/performance")
+def performance_metrics(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Performance metrics endpoint"""
+    return monitor.get_performance_metrics(db)

@@ -17,7 +17,7 @@ class Receta(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     nombre = Column(String(200), nullable=False)  # Nombre de la receta
-    producto_final_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Producto resultante
+    producto_final_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Producto resultante
     descripcion = Column(Text)  # Descripción de la receta
     rendimiento = Column(Numeric(10, 4), nullable=False)  # Cantidad de producto final producido
     activa = Column(Boolean, default=True)  # Si la receta está activa
@@ -38,7 +38,7 @@ class IngredienteReceta(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     receta_id = Column(UUID(as_uuid=True), ForeignKey("mrp_recetas.id"), nullable=False)
-    ingrediente_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Producto que es ingrediente
+    ingrediente_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed from productos to alm_producto - Producto que es ingrediente
     cantidad_requerida = Column(Numeric(10, 4), nullable=False)  # Cantidad necesaria del ingrediente
     unidad_medida = Column(String(20), nullable=False)  # Unidad de medida
     secuencia = Column(Integer, default=1)  # Orden de utilización en el proceso
@@ -57,7 +57,7 @@ class OrdenProduccion(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     codigo = Column(String(50), unique=True, nullable=False)  # Código único de la orden
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Producto a fabricar
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed from productos to alm_producto - Producto a fabricar
     cantidad_programada = Column(Numeric(10, 4), nullable=False)  # Cantidad a producir
     cantidad_real = Column(Numeric(10, 4), default=0)  # Cantidad realmente producida
     fecha_inicio = Column(Date, nullable=False)  # Fecha programada de inicio
@@ -86,7 +86,7 @@ class ConsumoMaterial(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
     orden_produccion_id = Column(UUID(as_uuid=True), ForeignKey("mrp_ordenes_produccion.id"), nullable=False)
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Material consumido
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed from productos to alm_producto - Material consumido
     cantidad_requerida = Column(Numeric(10, 4), nullable=False)  # Cantidad requerida
     cantidad_consumida = Column(Numeric(10, 4), default=0)  # Cantidad realmente consumida
     unidad_medida = Column(String(20), nullable=False)  # Unidad de medida
@@ -105,7 +105,7 @@ class PrevisionDemanda(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Producto previsto
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed from productos to alm_producto - Producto previsto
     periodo_inicio = Column(Date, nullable=False)  # Fecha de inicio del período
     periodo_fin = Column(Date, nullable=False)  # Fecha de fin del período
     cantidad_prevista = Column(Numeric(10, 4), nullable=False)  # Cantidad prevista
@@ -128,7 +128,7 @@ class ProgramaMaestroProduccion(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("productos.id"), nullable=False)  # Producto programado
+    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed from productos to alm_producto - Producto programado
     periodo_inicio = Column(Date, nullable=False)  # Fecha de inicio del período
     periodo_fin = Column(Date, nullable=False)  # Fecha de fin del período
     cantidad_programada = Column(Numeric(10, 4), nullable=False)  # Cantidad programada

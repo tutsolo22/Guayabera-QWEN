@@ -17,7 +17,7 @@ import tempfile
 import os
 from pathlib import Path
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, relationship
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.sql import func
@@ -330,3 +330,60 @@ class DocumentOCRProcessor:
 
 # Global instance
 ocr_processor = DocumentOCRProcessor()
+
+
+# Add the FastAPI router for OCR
+from fastapi import APIRouter, Depends, UploadFile, File
+from app.core.database import get_db
+from app.core.security import get_current_user
+
+ocr_router = APIRouter(tags=["ocr"])
+
+@ocr_router.post("/process")
+def process_document(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Process a document using OCR to extract text and structured data"""
+    import io
+    from PIL import Image
+    
+    # Read the uploaded file
+    contents = file.file.read()
+    
+    # Process the document
+    result = ocr_processor.process_document_from_bytes(contents)
+    
+    # Save the result to the database
+    saved_ocr = ocr_processor.save_ocr_result(
+        db, 
+        result, 
+        file.filename, 
+        current_user.get("id")
+    )
+    
+    return {
+        "id": saved_ocr.id,
+        "filename": saved_ocr.nombre_archivo,
+        "document_type": result.document_type,
+        "text": result.text,
+        "confidence": result.confidence,
+        "extracted_data": result.extracted_data,
+        "processing_time": result.processing_time
+    }
+
+@ocr_router.get("/history")
+def get_ocr_history(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get OCR processing history"""
+    ocr_records = db.query(DocumentOCR).filter(
+        DocumentOCR.usuario_id == current_user.get("id")
+    ).order_by(DocumentOCR.fecha_procesamiento.desc()).limit(50).all()
+    
+    return {
+        "records": ocr_records,
+        "total_count": len(ocr_records)
+    }

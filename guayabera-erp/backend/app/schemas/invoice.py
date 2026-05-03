@@ -223,12 +223,12 @@ class ConceptoFacturaUpdate(BaseModel):
     clave_producto: Optional[str] = Field(None, max_length=10)
     clave_unidad: Optional[str] = Field(None, max_length=10)
     no_identificacion: Optional[str] = Field(None, max_length=100)
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = Field(None, max_length=1000)
     cantidad: Optional[Decimal] = None
-    unidad_medida: Optional[str] = Field(None, max_length=50)
+    unidad_medida: Optional[str] = Field(None, max_length=10)
     valor_unitario: Optional[Decimal] = None
     importe: Optional[Decimal] = None
-    descuento: Optional[Decimal] = Field(None, Decimal('0.00'))
+    descuento: Optional[Decimal] = Field(None, description="Descuento aplicado al concepto")
     objeto_imp: Optional[str] = Field(None, max_length=2)
     producto_id: Optional[UUID4] = None
 
@@ -311,29 +311,17 @@ class ComplementoPagoCreate(ComplementoPagoBase):
 
 
 class ComplementoPagoUpdate(BaseModel):
-    fecha_pago: Optional[date] = None
-    forma_pago: Optional[str] = None
-    moneda_pago: Optional[str] = Field(None, max_length=3)
-    tipo_cambio_pago: Optional[Decimal] = Field(None, Decimal('1.000000'))
-    monto: Optional[Decimal] = None
-    rfc_emisor_cuenta_ord: Optional[str] = Field(None, max_length=13)
-    banco_ordenante_nombre: Optional[str] = Field(None, max_length=100)
-    cuenta_ordenante: Optional[str] = Field(None, max_length=50)
-    rfc_emisor_cuenta_ben: Optional[str] = Field(None, max_length=13)
-    banco_beneficiario_nombre: Optional[str] = Field(None, max_length=100)
-    cuenta_beneficiario: Optional[str] = Field(None, max_length=50)
-    documento_relacionado_id: Optional[UUID4] = None
-    id_documento: Optional[str] = Field(None, max_length=36)
-    serie_documento: Optional[str] = Field(None, max_length=10)
-    folio_documento: Optional[str] = Field(None, max_length=20)
-    moneda_dr: Optional[str] = Field(None, max_length=3)
-    tipo_cambio_dr: Optional[Decimal] = Field(None, Decimal('1.000000'))
-    metodo_pago_dr: Optional[str] = Field(None, max_length=10)
+    fecha_pago: Optional[datetime] = None
+    forma_pago: Optional[str] = Field(None, max_length=10)
+    moneda_pago: Optional[str] = Field(None, max_length=10)
+    tipo_cambio_pago: Optional[Decimal] = Field(default=None, description="Tipo de cambio para el pago")  # Corregido
+    numero_operacion: Optional[str] = Field(None, max_length=100)
+    rfc_emisor_cta_ben: Optional[str] = Field(None, max_length=20)
+    cta_beneficiario: Optional[str] = Field(None, max_length=50)
     num_parcialidad: Optional[int] = None
     saldo_anterior: Optional[Decimal] = None
     importe_pagado: Optional[Decimal] = None
     saldo_insoluto: Optional[Decimal] = None
-    activo: Optional[bool] = None
 
 
 class ComplementoPagoResponse(ComplementoPagoBase):

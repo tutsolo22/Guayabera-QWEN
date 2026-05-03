@@ -91,11 +91,19 @@ Combina la robustez de los sistemas administrativos mexicanos (CONTPAQi) con la 
 - Análisis predictivo: Modelos estadísticos para predicción de tendencias.
 
 #### Seguridad y Cumplimiento
-- Auditoría de seguridad: Registros detallados de todas las actividades.
-- Control de versiones: Seguimiento de cambios en documentos y registros.
-- Encriptación de datos: Protección de información sensible tanto en tránsito como en reposo.
-- Firmas electrónicas: Validación de operaciones mediante firma digital.
-- Detección de fraudes: Identificación de patrones atípicos en transacciones.
+- Sistema de permisos basado en roles (RBAC)
+- Permisos granulares a nivel de módulo, entidad y acción
+- Jerarquía de permisos y perfiles predefinidos
+- Auditoría completa de todas las operaciones del sistema
+- Registro detallado: usuario, fecha/hora, IP, user agent, acción realizada
+- Detección de cambios en datos sensibles
+- Consulta y filtrado avanzado de registros de auditoría
+- Control de versiones para documentos y registros
+- Encriptación de datos sensibles en reposo y en tránsito
+- Bloqueo de cuentas y políticas de seguridad
+- Registro de sesiones y cierre remoto de sesiones
+- Firmas electrónicas: Validación de operaciones mediante firma digital
+- Detección de patrones sospechosos de fraude
 
 ---
 
@@ -247,9 +255,23 @@ guayabera-erp/
 ### Seguridad
 - **Usuario** - Usuarios del sistema con autenticación multifactor
 - **Rol** - Roles RBAC (Admin, Contador, etc.)
-- **Permiso** - Permisos granulares (ver, crear, editar, eliminar, imprimir)
-- **Auditoría** - Bitácora completa con JSONB y detección de cambios
+- **Permiso** - 
+  - Permisos granulares (ver, crear, editar, eliminar, imprimir)
+  - Sistema de jerarquía de permisos
+  - Asignación de permisos a nivel de módulo, entidad y acción
+  - Perfiles predefinidos y personalización de roles
+- **Auditoría** - 
+  - Bitácora completa con JSONB y detección de cambios
+  - Registro de todas las operaciones críticas del sistema
+  - Información detallada: usuario, fecha/hora, IP, user agent, acción realizada
+  - Detección de cambios en datos sensibles
+  - Consulta y filtrado avanzado de registros de auditoría
 - **Documento Versión** - Control de versiones para documentos importantes
+- **Seguridad Operativa** - 
+  - Bloqueo de cuentas por intentos fallidos
+  - Políticas de contraseñas seguras
+  - Registro de sesiones activas
+  - Cierre de sesión remoto
 
 ### Módulos Implementados
 
@@ -302,13 +324,17 @@ guayabera-erp/
 ### Características de Seguridad
 - ✅ Autenticación JWT con bcrypt
 - ✅ Autorización RBAC (Role-Based Access Control)
+- ✅ Sistema de permisos jerárquico y granular
 - ✅ Auditoría completa con registro de IP, máquina, user agent
+- ✅ Registros de auditoría detallados con consulta avanzada
 - ✅ Datos anteriores/nuevos en JSONB para trazabilidad
 - ✅ Cifrado de contraseñas con bcrypt
-- ✅ Tokens con expiración configurable
+- ✅ Tokens con expiración configurable y renovación automática
 - ✅ Control de versiones para documentos y registros
-- ✅ Encriptación de datos sensibles en reposo
+- ✅ Encriptación de datos sensibles en reposo y en tránsito
 - ✅ Detección de patrones sospechosos de fraude
+- ✅ Bloqueo de cuentas y políticas de seguridad
+- ✅ Registro de sesiones y cierre remoto de sesiones
 
 ### Cumplimiento México
 - ✅ Catálogo de cuentas SAT (importado)

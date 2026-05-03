@@ -6,6 +6,7 @@ Specialized for textile manufacturing companies
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from uuid import UUID
 
 from app.core.database import get_db
 from app.schemas.hr import (
@@ -78,7 +79,13 @@ def create_employee(empleado: EmpleadoCreate, db: Session = Depends(get_db)):
 @router.get("/employees/{empleado_id}", response_model=EmpleadoResponse)
 def get_employee(empleado_id: str, db: Session = Depends(get_db)):
     """Get an employee by ID"""
-    empleado = get_empleado(db, empleado_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    empleado = get_empleado(db, uuid_obj)
     if not empleado:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -112,9 +119,15 @@ def update_employee(
     db: Session = Depends(get_db)
 ):
     """Update an employee"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
     updated_empleado = update_empleado(
         db=db, 
-        empleado_id=empleado_id, 
+        empleado_id=uuid_obj, 
         empleado_data=empleado_data
     )
     if not updated_empleado:
@@ -128,7 +141,13 @@ def update_employee(
 @router.delete("/employees/{empleado_id}")
 def delete_employee(empleado_id: str, db: Session = Depends(get_db)):
     """Delete an employee"""
-    success = delete_empleado(db=db, empleado_id=empleado_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    success = delete_empleado(db=db, empleado_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -158,7 +177,13 @@ def create_contract(contract: ContratoCreate, db: Session = Depends(get_db)):
 @router.get("/contracts/{contrato_id}", response_model=ContratoResponse)
 def get_contract(contrato_id: str, db: Session = Depends(get_db)):
     """Get a contract by ID"""
-    contrato = get_contrato(db, contrato_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(contrato_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contract ID format")
+    
+    contrato = get_contrato(db, uuid_obj)
     if not contrato:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -170,7 +195,13 @@ def get_contract(contrato_id: str, db: Session = Depends(get_db)):
 @router.get("/employees/{empleado_id}/contracts", response_model=List[ContratoResponse])
 def get_employee_contracts(empleado_id: str, db: Session = Depends(get_db)):
     """Get all contracts for a specific employee"""
-    return get_contratos_by_empleado(db, empleado_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    return get_contratos_by_empleado(db, uuid_obj)
 
 
 @router.put("/contracts/{contrato_id}", response_model=ContratoResponse)
@@ -180,9 +211,15 @@ def update_contract(
     db: Session = Depends(get_db)
 ):
     """Update a contract"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(contrato_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contract ID format")
+    
     updated_contrato = update_contrato(
         db=db, 
-        contrato_id=contrato_id, 
+        contrato_id=uuid_obj, 
         contrato_data=contrato_data
     )
     if not updated_contrato:
@@ -196,7 +233,13 @@ def update_contract(
 @router.delete("/contracts/{contrato_id}")
 def delete_contract(contrato_id: str, db: Session = Depends(get_db)):
     """Delete a contract"""
-    success = delete_contrato(db=db, contrato_id=contrato_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(contrato_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid contract ID format")
+    
+    success = delete_contrato(db=db, contrato_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -218,7 +261,13 @@ def create_employee_position(puesto: EmpleadoPuestoCreate, db: Session = Depends
 @router.get("/employee-positions/{puesto_id}", response_model=EmpleadoPuestoResponse)
 def get_employee_position(puesto_id: str, db: Session = Depends(get_db)):
     """Get an employee position assignment by ID"""
-    puesto = get_empleado_puesto(db, puesto_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
+    puesto = get_empleado_puesto(db, uuid_obj)
     if not puesto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -230,7 +279,13 @@ def get_employee_position(puesto_id: str, db: Session = Depends(get_db)):
 @router.get("/employees/{empleado_id}/positions/active", response_model=List[EmpleadoPuestoResponse])
 def get_employee_active_positions(empleado_id: str, db: Session = Depends(get_db)):
     """Get all active position assignments for an employee"""
-    return get_empleado_puestos_activos(db, empleado_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    return get_empleado_puestos_activos(db, uuid_obj)
 
 
 @router.put("/employee-positions/{puesto_id}", response_model=EmpleadoPuestoResponse)
@@ -240,9 +295,15 @@ def update_employee_position(
     db: Session = Depends(get_db)
 ):
     """Update an employee position assignment"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
     updated_puesto = update_empleado_puesto(
         db=db, 
-        puesto_id=puesto_id, 
+        puesto_id=uuid_obj, 
         puesto_data=puesto_data
     )
     if not updated_puesto:
@@ -256,7 +317,13 @@ def update_employee_position(
 @router.delete("/employee-positions/{puesto_id}")
 def delete_employee_position(puesto_id: str, db: Session = Depends(get_db)):
     """Delete an employee position assignment"""
-    success = delete_empleado_puesto(db=db, puesto_id=puesto_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
+    success = delete_empleado_puesto(db=db, puesto_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -286,7 +353,13 @@ def create_position(puesto: PuestoCreate, db: Session = Depends(get_db)):
 @router.get("/positions/{puesto_id}", response_model=PuestoResponse)
 def get_position(puesto_id: str, db: Session = Depends(get_db)):
     """Get a job position by ID"""
-    puesto = get_puesto(db, puesto_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
+    puesto = get_puesto(db, uuid_obj)
     if not puesto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -320,9 +393,15 @@ def update_position(
     db: Session = Depends(get_db)
 ):
     """Update a job position"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
     updated_puesto = update_puesto(
         db=db, 
-        puesto_id=puesto_id, 
+        puesto_id=uuid_obj, 
         puesto_data=puesto_data
     )
     if not updated_puesto:
@@ -336,7 +415,13 @@ def update_position(
 @router.delete("/positions/{puesto_id}")
 def delete_position(puesto_id: str, db: Session = Depends(get_db)):
     """Delete a job position"""
-    success = delete_puesto(db=db, puesto_id=puesto_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(puesto_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid position ID format")
+    
+    success = delete_puesto(db=db, puesto_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -358,7 +443,13 @@ def create_attendance(asistencia: AsistenciaCreate, db: Session = Depends(get_db
 @router.get("/attendance/{asistencia_id}", response_model=AsistenciaResponse)
 def get_attendance(asistencia_id: str, db: Session = Depends(get_db)):
     """Get an attendance record by ID"""
-    asistencia = get_asistencia(db, asistencia_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(asistencia_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid attendance ID format")
+    
+    asistencia = get_asistencia(db, uuid_obj)
     if not asistencia:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -400,8 +491,14 @@ def get_employee_attendance(
             detail="Invalid date format. Use YYYY-MM-DD."
         )
     
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
     return get_asistencias_by_empleado_fecha(
-        db, empleado_id, start_date, end_date
+        db, uuid_obj, start_date, end_date
     )
 
 
@@ -412,9 +509,15 @@ def update_attendance(
     db: Session = Depends(get_db)
 ):
     """Update an attendance record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(asistencia_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid attendance ID format")
+    
     updated_asistencia = update_asistencia(
         db=db, 
-        asistencia_id=asistencia_id, 
+        asistencia_id=uuid_obj, 
         asistencia_data=asistencia_data
     )
     if not updated_asistencia:
@@ -428,7 +531,13 @@ def update_attendance(
 @router.delete("/attendance/{asistencia_id}")
 def delete_attendance(asistencia_id: str, db: Session = Depends(get_db)):
     """Delete an attendance record"""
-    success = delete_asistencia(db=db, asistencia_id=asistencia_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(asistencia_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid attendance ID format")
+    
+    success = delete_asistencia(db=db, asistencia_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -450,7 +559,13 @@ def create_medical_leave(incapacidad: IncapacidadCreate, db: Session = Depends(g
 @router.get("/medical-leaves/{incapacidad_id}", response_model=IncapacidadResponse)
 def get_medical_leave(incapacidad_id: str, db: Session = Depends(get_db)):
     """Get a medical leave record by ID"""
-    incapacidad = get_incapacidad(db, incapacidad_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(incapacidad_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid medical leave ID format")
+    
+    incapacidad = get_incapacidad(db, uuid_obj)
     if not incapacidad:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -466,7 +581,13 @@ def get_employee_medical_leaves(
     db: Session = Depends(get_db)
 ):
     """Get all medical leaves for an employee, optionally filtered by state"""
-    return get_incapacidades_by_empleado(db, empleado_id, estado)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    return get_incapacidades_by_empleado(db, uuid_obj, estado)
 
 
 @router.put("/medical-leaves/{incapacidad_id}", response_model=IncapacidadResponse)
@@ -476,9 +597,15 @@ def update_medical_leave(
     db: Session = Depends(get_db)
 ):
     """Update a medical leave record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(incapacidad_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid medical leave ID format")
+    
     updated_incapacidad = update_incapacidad(
         db=db, 
-        incapacidad_id=incapacidad_id, 
+        incapacidad_id=uuid_obj, 
         incapacidad_data=incapacidad_data
     )
     if not updated_incapacidad:
@@ -492,7 +619,13 @@ def update_medical_leave(
 @router.delete("/medical-leaves/{incapacidad_id}")
 def delete_medical_leave(incapacidad_id: str, db: Session = Depends(get_db)):
     """Delete a medical leave record"""
-    success = delete_incapacidad(db=db, incapacidad_id=incapacidad_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(incapacidad_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid medical leave ID format")
+    
+    success = delete_incapacidad(db=db, incapacidad_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -514,7 +647,13 @@ def create_vacation(vacacion: VacacionCreate, db: Session = Depends(get_db)):
 @router.get("/vacations/{vacacion_id}", response_model=VacacionResponse)
 def get_vacation(vacacion_id: str, db: Session = Depends(get_db)):
     """Get a vacation record by ID"""
-    vacacion = get_vacacion(db, vacacion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(vacacion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vacation ID format")
+    
+    vacacion = get_vacacion(db, uuid_obj)
     if not vacacion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -531,7 +670,13 @@ def get_employee_vacations(
     db: Session = Depends(get_db)
 ):
     """Get all vacations for an employee, optionally filtered by year and state"""
-    return get_vacaciones_by_empleado(db, empleado_id, anio, estado)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
+    return get_vacaciones_by_empleado(db, uuid_obj, anio, estado)
 
 
 @router.put("/vacations/{vacacion_id}", response_model=VacacionResponse)
@@ -541,9 +686,15 @@ def update_vacation(
     db: Session = Depends(get_db)
 ):
     """Update a vacation record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(vacacion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vacation ID format")
+    
     updated_vacacion = update_vacacion(
         db=db, 
-        vacacion_id=vacacion_id, 
+        vacacion_id=uuid_obj, 
         vacacion_data=vacacion_data
     )
     if not updated_vacacion:
@@ -557,7 +708,13 @@ def update_vacation(
 @router.delete("/vacations/{vacacion_id}")
 def delete_vacation(vacacion_id: str, db: Session = Depends(get_db)):
     """Delete a vacation record"""
-    success = delete_vacacion(db=db, vacacion_id=vacacion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(vacacion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid vacation ID format")
+    
+    success = delete_vacacion(db=db, vacacion_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -579,7 +736,13 @@ def create_payroll(nomina: NominaCreate, db: Session = Depends(get_db)):
 @router.get("/payrolls/{nomina_id}", response_model=NominaResponse)
 def get_payroll(nomina_id: str, db: Session = Depends(get_db)):
     """Get a payroll record by ID"""
-    nomina = get_nomina(db, nomina_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(nomina_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll ID format")
+    
+    nomina = get_nomina(db, uuid_obj)
     if not nomina:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -595,9 +758,14 @@ def get_employee_payrolls(
     db: Session = Depends(get_db)
 ):
     """Get all payroll records for an employee, optionally filtered by period"""
+    # Convert string to UUID
+    try:
+        uuid_empleado = UUID(empleado_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid employee ID format")
+    
     uuid_periodo_pago = None
     if periodo_pago_id:
-        from uuid import UUID
         try:
             uuid_periodo_pago = UUID(periodo_pago_id)
         except ValueError:
@@ -606,7 +774,7 @@ def get_employee_payrolls(
                 detail="Invalid period ID format"
             )
     
-    return get_nominas_by_empleado(db, empleado_id, uuid_periodo_pago)
+    return get_nominas_by_empleado(db, uuid_empleado, uuid_periodo_pago)
 
 
 @router.put("/payrolls/{nomina_id}", response_model=NominaResponse)
@@ -616,9 +784,15 @@ def update_payroll(
     db: Session = Depends(get_db)
 ):
     """Update a payroll record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(nomina_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll ID format")
+    
     updated_nomina = update_nomina(
         db=db, 
-        nomina_id=nomina_id, 
+        nomina_id=uuid_obj, 
         nomina_data=nomina_data
     )
     if not updated_nomina:
@@ -632,7 +806,13 @@ def update_payroll(
 @router.delete("/payrolls/{nomina_id}")
 def delete_payroll(nomina_id: str, db: Session = Depends(get_db)):
     """Delete a payroll record"""
-    success = delete_nomina(db=db, nomina_id=nomina_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(nomina_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll ID format")
+    
+    success = delete_nomina(db=db, nomina_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -662,7 +842,13 @@ def create_payroll_period(periodo: PeriodoPagoCreate, db: Session = Depends(get_
 @router.get("/payroll-periods/{periodo_id}", response_model=PeriodoPagoResponse)
 def get_payroll_period(periodo_id: str, db: Session = Depends(get_db)):
     """Get a payroll period by ID"""
-    periodo = get_periodo_pago(db, periodo_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(periodo_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid period ID format")
+    
+    periodo = get_periodo_pago(db, uuid_obj)
     if not periodo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -696,9 +882,15 @@ def update_payroll_period(
     db: Session = Depends(get_db)
 ):
     """Update a payroll period"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(periodo_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid period ID format")
+    
     updated_periodo = update_periodo_pago(
         db=db, 
-        periodo_id=periodo_id, 
+        periodo_id=uuid_obj, 
         periodo_data=periodo_data
     )
     if not updated_periodo:
@@ -712,7 +904,13 @@ def update_payroll_period(
 @router.delete("/payroll-periods/{periodo_id}")
 def delete_payroll_period(periodo_id: str, db: Session = Depends(get_db)):
     """Delete a payroll period"""
-    success = delete_periodo_pago(db=db, periodo_id=periodo_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(periodo_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid period ID format")
+    
+    success = delete_periodo_pago(db=db, periodo_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -734,7 +932,13 @@ def create_earning(percepcion: PercepcionCreate, db: Session = Depends(get_db)):
 @router.get("/earnings/{percepcion_id}", response_model=PercepcionResponse)
 def get_earning(percepcion_id: str, db: Session = Depends(get_db)):
     """Get an earning record by ID"""
-    percepcion = get_percepcion(db, percepcion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(percepcion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid earning ID format")
+    
+    percepcion = get_percepcion(db, uuid_obj)
     if not percepcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -746,7 +950,13 @@ def get_earning(percepcion_id: str, db: Session = Depends(get_db)):
 @router.get("/payrolls/{nomina_id}/earnings", response_model=List[PercepcionResponse])
 def get_payroll_earnings(nomina_id: str, db: Session = Depends(get_db)):
     """Get all earnings for a specific payroll record"""
-    return get_percepciones_by_nomina(db, nomina_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(nomina_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll ID format")
+    
+    return get_percepciones_by_nomina(db, uuid_obj)
 
 
 @router.put("/earnings/{percepcion_id}", response_model=PercepcionResponse)
@@ -756,9 +966,15 @@ def update_earning(
     db: Session = Depends(get_db)
 ):
     """Update an earning record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(percepcion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid earning ID format")
+    
     updated_percepcion = update_percepcion(
         db=db, 
-        percepcion_id=percepcion_id, 
+        percepcion_id=uuid_obj, 
         percepcion_data=percepcion_data
     )
     if not updated_percepcion:
@@ -772,7 +988,13 @@ def update_earning(
 @router.delete("/earnings/{percepcion_id}")
 def delete_earning(percepcion_id: str, db: Session = Depends(get_db)):
     """Delete an earning record"""
-    success = delete_percepcion(db=db, percepcion_id=percepcion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(percepcion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid earning ID format")
+    
+    success = delete_percepcion(db=db, percepcion_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -794,7 +1016,13 @@ def create_deduction(deduccion: DeduccionCreate, db: Session = Depends(get_db)):
 @router.get("/deductions/{deduccion_id}", response_model=DeduccionResponse)
 def get_deduction(deduccion_id: str, db: Session = Depends(get_db)):
     """Get a deduction record by ID"""
-    deduccion = get_deduccion(db, deduccion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(deduccion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid deduction ID format")
+    
+    deduccion = get_deduccion(db, uuid_obj)
     if not deduccion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -806,7 +1034,13 @@ def get_deduction(deduccion_id: str, db: Session = Depends(get_db)):
 @router.get("/payrolls/{nomina_id}/deductions", response_model=List[DeduccionResponse])
 def get_payroll_deductions(nomina_id: str, db: Session = Depends(get_db)):
     """Get all deductions for a specific payroll record"""
-    return get_deducciones_by_nomina(db, nomina_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(nomina_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payroll ID format")
+    
+    return get_deducciones_by_nomina(db, uuid_obj)
 
 
 @router.put("/deductions/{deduccion_id}", response_model=DeduccionResponse)
@@ -816,9 +1050,15 @@ def update_deduction(
     db: Session = Depends(get_db)
 ):
     """Update a deduction record"""
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(deduccion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid deduction ID format")
+    
     updated_deduccion = update_deduccion(
         db=db, 
-        deduccion_id=deduccion_id, 
+        deduccion_id=uuid_obj, 
         deduccion_data=deduccion_data
     )
     if not updated_deduccion:
@@ -832,7 +1072,13 @@ def update_deduction(
 @router.delete("/deductions/{deduccion_id}")
 def delete_deduction(deduccion_id: str, db: Session = Depends(get_db)):
     """Delete a deduction record"""
-    success = delete_deduccion(db=db, deduccion_id=deduccion_id)
+    # Convert string to UUID
+    try:
+        uuid_obj = UUID(deduccion_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid deduction ID format")
+    
+    success = delete_deduccion(db=db, deduccion_id=uuid_obj)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

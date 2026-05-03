@@ -95,31 +95,61 @@ class Permiso(Base):
     roles = relationship("Rol", secondary=rol_permiso, back_populates="permisos")
 
 
-class Auditoria(Base):
-    """Complete audit trail"""
-    __tablename__ = "seg_auditoria"
+class AuditLog(Base):
+    """Complete audit trail with enhanced support for sales operations"""
+    __tablename__ = "seg_audit_log"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
-    usuario_nombre = Column(String(200))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    user_name = Column(String(200))
     
     # Action details
-    accion = Column(String(50), nullable=False)  # CREATE, UPDATE, DELETE, LOGIN
-    modulo = Column(String(50), nullable=False)
-    entidad = Column(String(100), nullable=False)
-    entidad_id = Column(UUID(as_uuid=True))
+    action = Column(String(50), nullable=False)  # CREATE, UPDATE, DELETE, LOGIN, etc.
+    module = Column(String(50), nullable=False)  # Sales module or other system modules
+    sub_module = Column(String(50))  # Specific sales sub-module (e.g., orders, invoices)
+    entity = Column(String(100), nullable=False)  # Entity type affected
+    entity_id = Column(UUID(as_uuid=True))  # ID of the entity affected
     
     # Data changes
-    datos_anteriores = Column(JSONB)
-    datos_nuevos = Column(JSONB)
+    previous_data = Column(JSONB)  # Previous values (for updates)
+    new_data = Column(JSONB)  # New values (for creates/updates)
+    
+    # Sales-specific fields
+    sale_id = Column(UUID(as_uuid=True))  # Reference to a specific sale if applicable
+    customer_id = Column(UUID(as_uuid=True))  # Reference to a customer if applicable
+    product_id = Column(UUID(as_uuid=True))  # Reference to a product if applicable
     
     # Technical info
     ip_address = Column(String(45))
-    nombre_maquina = Column(String(200))
+    machine_name = Column(String(200))
     user_agent = Column(String(500))
+    session_id = Column(String(255))  # Reference to the user session
     
-    # Timestamp
+    # Status and metadata
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+    status = Column(String(20), default='success')  # success, failed, pending
+    notes = Column(Text)  # Additional notes about the operation
+
+
+class SecurityEvent(Base):
+    """Security events for monitoring and compliance"""
+    __tablename__ = "seg_security_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    event_type = Column(String(50), nullable=False)  # login_failed, suspicious_activity, etc.
+    severity = Column(String(20), default='medium')  # low, medium, high, critical
+    description = Column(Text)
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    resolved = Column(Boolean, default=False)
+    resolution_notes = Column(Text)
+    resolved_by = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))
+    
+    # Relationships
+    user = relationship("Usuario", foreign_keys=[user_id])
+    resolved_by_user = relationship("Usuario", foreign_keys=[resolved_by])
 
 
 class MetodoMFA(Base):

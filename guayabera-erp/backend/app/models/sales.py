@@ -1,3 +1,187 @@
+# Import all models to ensure they are registered with SQLAlchemy
+from sqlalchemy import (
+    Column, Integer, String, DateTime, ForeignKey, Text, 
+    Boolean, Date, Time, Numeric, UniqueConstraint, CheckConstraint, Index
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+import uuid
+from app.core.database import Base
+
+"""
+Modelos para el módulo de ventas
+"""
+# Aquí se definen las clases SalesConfiguration, DiscountRule, LoyaltyProgram, PriceList, PriceListItem
+# No se necesita importar desde el mismo módulo
+
+"""
+Sales Configuration Models: Price lists, discount rules, loyalty programs
+"""
+
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+from app.core.database import Base
+
+
+class SalesConfiguration(Base):
+    """Modelo para la configuración general del módulo de ventas"""
+    __tablename__ = "sales_configurations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)  # Changed to existing table
+    
+    # Configuración de precios
+    price_update_approval_required = Column(Boolean, default=False)
+    allow_manual_discounts = Column(Boolean, default=True)
+    max_discount_percentage = Column(Numeric(5, 2), default=10.00)  # Porcentaje máximo de descuento
+    
+    # Configuración de promociones
+    enable_promotions = Column(Boolean, default=True)
+    promotion_approval_required = Column(Boolean, default=True)
+    
+    # Configuración de lealtad
+    enable_customer_loyalty = Column(Boolean, default=True)
+    loyalty_points_per_currency = Column(Numeric(10, 2), default=1.00)  # Puntos por unidad monetaria
+    points_to_currency_ratio = Column(Numeric(10, 2), default=0.01)  # Valor de cada punto en unidad monetaria
+    
+    # Configuración de pedidos
+    require_sales_order_approval = Column(Boolean, default=True)
+    allow_backorders = Column(Boolean, default=True)
+    default_sales_terms = Column(Text)
+    
+    # Configuración fiscal
+    default_tax_rate = Column(Numeric(5, 2), default=16.00)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed to existing table
+    
+    # Relaciones
+    company = relationship("Empresa", back_populates="sales_configurations")
+    user = relationship("Usuario", back_populates="sales_configurations")
+
+
+class DiscountRule(Base):
+    """Modelo para reglas de descuento"""
+    __tablename__ = "discount_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)  # Nombre de la regla
+    description = Column(Text)  # Descripción de la regla
+    company_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)  # Changed to existing table
+    
+    # Tipo de descuento
+    discount_type = Column(String(50), default="percentage")  # percentage, fixed_amount
+    discount_value = Column(Numeric(10, 2), nullable=False)  # Valor del descuento
+    
+    # Condiciones de aplicación
+    min_quantity = Column(Integer, default=1)
+    min_amount = Column(Numeric(12, 2), default=0.00)
+    applies_to_all_products = Column(Boolean, default=False)
+    
+    # Fechas de validez
+    start_date = Column(DateTime(timezone=True))
+    end_date = Column(DateTime(timezone=True))
+    
+    # Configuración adicional
+    is_active = Column(Boolean, default=True)
+    priority = Column(Integer, default=1)  # Mayor número = mayor prioridad
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed to existing table
+    
+    # Relaciones
+    company = relationship("Empresa", back_populates="discount_rules")
+    user = relationship("Usuario", back_populates="created_discount_rules")
+
+
+class LoyaltyProgram(Base):
+    """Modelo para programas de lealtad"""
+    __tablename__ = "loyalty_programs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)  # Nombre del programa
+    description = Column(Text)  # Descripción del programa
+    company_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)  # Changed to existing table
+    
+    # Configuración del programa
+    earning_method = Column(String(50), default="spending")  # spending, visits, purchases
+    points_calculation = Column(String(50), default="percentage")  # percentage, fixed_amount
+    earning_rate = Column(Numeric(10, 2))  # Tasa de ganancia de puntos
+    redemption_rate = Column(Numeric(10, 2))  # Tasa de canje de puntos
+    minimum_points_for_redemption = Column(Integer, default=100)
+    
+    # Validez de puntos
+    points_expire = Column(Boolean, default=False)
+    points_expiry_months = Column(Integer, default=12)
+    
+    # Configuración adicional
+    is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)  # Si es el programa por defecto
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed to existing table
+    
+    # Relaciones
+    company = relationship("Empresa", back_populates="loyalty_programs")
+    user = relationship("Usuario", back_populates="created_loyalty_programs")
+
+
+class PriceList(Base):
+    """Modelo para listas de precios"""
+    __tablename__ = "price_lists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)  # Nombre de la lista
+    description = Column(Text)  # Descripción de la lista
+    company_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)  # Changed to existing table
+    
+    # Configuración de la lista
+    currency = Column(String(3), default="MXN")  # Código de moneda
+    is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)  # Si es la lista por defecto
+    
+    # Fecha de validez
+    valid_from = Column(DateTime(timezone=True))
+    valid_until = Column(DateTime(timezone=True))
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_by = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed to existing table
+    
+    # Relaciones
+    company = relationship("Empresa", back_populates="price_lists")
+    user = relationship("Usuario", back_populates="created_price_lists")
+
+
+class PriceListItem(Base):
+    """Modelo para ítems de listas de precios"""
+    __tablename__ = "price_list_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    price_list_id = Column(Integer, ForeignKey("price_lists.id"), nullable=False)
+    product_variant_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)  # Changed to existing table
+    
+    # Precio
+    price = Column(Numeric(12, 4), nullable=False)
+    currency = Column(String(3), default="MXN")
+    
+    # Fechas de validez
+    valid_from = Column(DateTime(timezone=True))
+    valid_until = Column(DateTime(timezone=True))
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relaciones
+    price_list = relationship("PriceList", back_populates="items")
+    product_variant = relationship("Producto", back_populates="price_list_items")
+
+
 """
 Sales Models: Customers, orders, shipments, POS, inventory transfers
 Specialized for textile manufacturing companies
@@ -44,14 +228,7 @@ class EstadoPedido(enum.Enum):
     CANCELADO = "cancelado"
 
 
-class EstadoTransferencia(enum.Enum):
-    SOLICITADA = "solicitada"
-    AUTORIZADA = "autorizada"
-    EN_TRANSITO = "en_transito"
-    RECIBIDA = "recibida"
-    CANCELADA = "cancelada"
-
-
+# EstadoTransferencia se ha movido al módulo supply_chain
 class TipoMovimiento(enum.Enum):
     ENTRADA_TRANSFERENCIA = "entrada_transferencia"
     SALIDA_TRANSFERENCIA = "salida_transferencia"
@@ -177,151 +354,8 @@ class DireccionEntrega(Base):
 # INVENTORY AND WAREHOUSE (INVENTARIO Y ALMACÉN)
 # ============================================================================
 
-class Almacen(Base):
-    """Warehouse management - Gestión de almacenes"""
-    __tablename__ = "alm_almacen"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    # Basic information
-    codigo = Column(String(20), unique=True, nullable=False, index=True)
-    nombre = Column(String(100), nullable=False)
-    descripcion = Column(Text)
-    
-    # Location
-    tipo = Column(SQLEnum(TipoAlmacen), nullable=False)
-    calle = Column(String(200))
-    numero_exterior = Column(String(20))
-    numero_interior = Column(String(20))
-    colonia = Column(String(100))
-    ciudad = Column(String(100))
-    estado = Column(String(100))
-    pais = Column(String(100), default="México")
-    codigo_postal = Column(String(10))
-    
-    # Company association
-    empresa_id = Column(UUID(as_uuid=True), ForeignKey("admin_empresa.id"), nullable=False)
-    sucursal_id = Column(UUID(as_uuid=True), ForeignKey("admin_sucursal.id"))
-    
-    # Status
-    activo = Column(Boolean, default=True)
-    es_principal = Column(Boolean, default=False)
-    
-    # Metadata
-    comentarios = Column(Text)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True))
-    
-    # Relationships
-    movimientos = relationship("MovimientoInventario", back_populates="almacen")
-    transferencias_origen = relationship("TransferenciaInventario", 
-                                       foreign_keys="TransferenciaInventario.almacen_origen_id",
-                                       back_populates="almacen_origen")
-    transferencias_destino = relationship("TransferenciaInventario", 
-                                        foreign_keys="TransferenciaInventario.almacen_destino_id",
-                                        back_populates="almacen_destino")
-
-
-class MovimientoInventario(Base):
-    """Inventory movements - Movimientos de inventario"""
-    __tablename__ = "alm_movimiento_inventario"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    almacen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
-    
-    # Movement details
-    tipo_movimiento = Column(SQLEnum(TipoMovimiento), nullable=False)
-    cantidad = Column(Integer, nullable=False)
-    costo_promedio = Column(Numeric(15, 4))  # Cost at the time of movement
-    
-    # Related documents
-    documento_relacionado_tipo = Column(String(50))  # Pedido, Factura, Transferencia, etc.
-    documento_relacionado_id = Column(UUID(as_uuid=True))
-    
-    # Status
-    fecha_movimiento = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    autorizado_por_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))
-    
-    # Metadata
-    comentarios = Column(Text)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    almacen = relationship("Almacen", back_populates="movimientos")
-    producto = relationship("Producto")
-    autorizado_por = relationship("Empleado")
-
-
-class TransferenciaInventario(Base):
-    """Inventory transfers between warehouses - Transferencias de inventario"""
-    __tablename__ = "alm_transferencia_inventario"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    almacen_origen_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
-    almacen_destino_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"), nullable=False)
-    responsable_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))
-    
-    # Transfer details
-    folio = Column(String(30), unique=True, nullable=False, index=True)
-    descripcion = Column(Text)
-    fecha_solicitud = Column(Date, nullable=False)
-    fecha_autorizacion = Column(DateTime(timezone=True))
-    fecha_envio = Column(DateTime(timezone=True))
-    fecha_recepcion = Column(DateTime(timezone=True))
-    
-    # Status
-    estado = Column(SQLEnum(EstadoTransferencia), default=EstadoTransferencia.SOLICITADA)
-    
-    # Metadata
-    motivo_transferencia = Column(Text)
-    comentarios = Column(Text)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True))
-    
-    almacen_origen = relationship("Almacen", 
-                                foreign_keys=[almacen_origen_id], 
-                                back_populates="transferencias_origen")
-    almacen_destino = relationship("Almacen", 
-                                 foreign_keys=[almacen_destino_id], 
-                                 back_populates="transferencias_destino")
-    responsable = relationship("Empleado")
-    detalles = relationship("DetalleTransferencia", back_populates="transferencia")
-
-
-class DetalleTransferencia(Base):
-    """Details of inventory transfers - Detalles de transferencias"""
-    __tablename__ = "alm_detalle_transferencia"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    transferencia_id = Column(UUID(as_uuid=True), ForeignKey("alm_transferencia_inventario.id"), nullable=False)
-    producto_id = Column(UUID(as_uuid=True), ForeignKey("alm_producto.id"), nullable=False)
-    
-    # Detail information
-    cantidad_solicitada = Column(Integer, nullable=False)
-    cantidad_autorizada = Column(Integer)
-    cantidad_enviada = Column(Integer, default=0)
-    cantidad_recibida = Column(Integer, default=0)
-    costo_unitario = Column(Numeric(15, 4))
-    
-    # Metadata
-    comentarios = Column(Text)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    transferencia = relationship("TransferenciaInventario", back_populates="detalles")
-    producto = relationship("Producto")
-
+# Importar Almacen desde el módulo correcto
+from app.models.supply_chain import Almacen
 
 # ============================================================================
 # SALES ORDERS AND POS (PEDIDOS DE VENTA Y PUNTO DE VENTA)

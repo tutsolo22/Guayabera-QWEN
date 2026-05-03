@@ -361,3 +361,29 @@ class MovimientoInventario(Base):
 
 TomaInventario.registros = relationship("RegistroTomaInventario", back_populates="toma_inventario")
 
+
+class UnidadMedida(Base):
+    """Unit of measurement for products - Unidades de medida para productos"""
+    __tablename__ = "inv_unidad_medida"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    codigo = Column(String(20), unique=True, nullable=False, index=True)  # PIEZA, PZA, DOCENA, METRO, KILO, etc.
+    nombre = Column(String(100), nullable=False)  # Pieza, Docena, Metro, Kilogramo, etc.
+    descripcion = Column(Text)
+    abreviatura = Column(String(10), nullable=False)  # pza, dz, m, kg, etc.
+    
+    # Conversion factors (to base unit)
+    factor_base = Column(Numeric(10, 4), default=1.0)  # Factor to convert to base unit
+    unidad_base_id = Column(UUID(as_uuid=True), ForeignKey("inv_unidad_medida.id"))  # Reference to base unit
+    
+    activa = Column(Boolean, default=True)
+    es_predeterminada = Column(Boolean, default=False)  # Is this the default unit?
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    unidad_base = relationship("UnidadMedida", remote_side=[id], backref="unidades_derivadas")
+    productos = relationship("Producto", back_populates="unidad_medida")
+

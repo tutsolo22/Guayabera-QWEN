@@ -5,6 +5,7 @@ Specialized for guayabera production and textile manufacturing
 
 from sqlalchemy import (Column, String, Boolean, DateTime, ForeignKey, Text, 
                         Float, Integer, Date, Numeric, CheckConstraint, Enum as SQLEnum)
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -147,7 +148,7 @@ class VariantePrenda(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     patron_id = Column(UUID(as_uuid=True), ForeignKey("prod_patron_prenda.id"), nullable=False)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("com_cliente.id"))  # Si es diseño personalizado
+    cliente_id = Column(UUID(as_uuid=True), ForeignKey("ventas_cliente.id"))  # Si es diseño personalizado
     
     # Variant identification
     codigo = Column(String(50), unique=True, nullable=False, index=True)
@@ -193,7 +194,7 @@ class OrdenProduccion(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     variante_prenda_id = Column(UUID(as_uuid=True), ForeignKey("prod_variante_prenda.id"), nullable=False)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("com_cliente.id"))
+    cliente_id = Column(UUID(as_uuid=True), ForeignKey("ventas_cliente.id"))  # Changed from com_cliente to ventas_cliente
     almacen_salida_id = Column(UUID(as_uuid=True), ForeignKey("alm_almacen.id"))
     
     # Order identification
@@ -221,7 +222,7 @@ class OrdenProduccion(Base):
     deleted_at = Column(DateTime(timezone=True))
 
     variante_prenda = relationship("VariantePrenda")
-    cliente = relationship("Cliente")
+    cliente = relationship("Cliente", back_populates="ordenes_produccion")
     almacen_salida = relationship("Almacen")  # Asumiendo que existe un modelo Almacen
     procesos = relationship("ProcesoProduccion", back_populates="orden_produccion")
 

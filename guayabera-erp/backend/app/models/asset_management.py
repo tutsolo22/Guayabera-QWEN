@@ -4,7 +4,7 @@ Specialized for textile manufacturing assets
 """
 
 from sqlalchemy import (Column, String, Boolean, DateTime, ForeignKey, Text, 
-                        Float, Integer, Date, Numeric, CheckConstraint, Enum as SQLEnum)
+                        Float, Integer, Date, Numeric, CheckConstraint, Enum as SQLEnum, Table)
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -90,178 +90,252 @@ class CategoriaActivo(Base):
 
 
 class Activo(Base):
-    """Fixed asset management - Gestión de activos fijos"""
-    __tablename__ = "am_activo"
+    """Asset model for tracking company assets"""
+    __tablename__ = "activos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    # Asset identification
-    codigo = Column(String(30), unique=True, nullable=False, index=True)  # Unique asset code
-    nombre = Column(String(150), nullable=False)
+    nombre = Column(String(200), nullable=False)
     descripcion = Column(Text)
-    tipo = Column(SQLEnum(TipoActivo), nullable=False)
-    
-    # Asset details
+    categoria_id = Column(UUID(as_uuid=True), ForeignKey("am_categoria_activo.id"), nullable=False)  # Changed from categorias_activo to am_categoria_activo
     marca = Column(String(100))
     modelo = Column(String(100))
-    serie = Column(String(100))
-    color = Column(String(50))
-    caracteristicas = Column(Text)  # Technical specifications
-    
-    # Location and assignment
-    ubicacion_actual = Column(String(150))  # Current location
-    departamento_asignado_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))  # Department assigned
-    empleado_asignado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Employee assigned
-    
-    # Acquisition and financial info
-    categoria_id = Column(UUID(as_uuid=True), ForeignKey("am_categoria_activo.id"), nullable=False)
-    fecha_adquisicion = Column(Date, nullable=False)
-    valor_adquisicion = Column(Numeric(12, 2), nullable=False)  # Purchase value
-    valor_actual = Column(Numeric(12, 2))  # Current book value after depreciation
-    vida_util_anios = Column(Integer, nullable=False)  # Useful life in years
-    metodo_depreciacion = Column(SQLEnum(MetodoDepreciacion), nullable=False)  # Depreciation method
-    porcentaje_residual = Column(Float, default=0.0)  # Residual percentage
+    numero_serie = Column(String(100), unique=True)
+    valor_adquisicion = Column(Numeric(10, 2))
+    fecha_adquisicion = Column(Date)
+    vida_util_anios = Column(Integer)  # Expected useful life in years
+    estado = Column(SQLEnum(EstadoActivo), default=EstadoActivo.ACTIVO)
+    ubicacion_id = Column(UUID(as_uuid=True), ForeignKey("log_ubicacion_almacen.id"))  # Changed to correct warehouse location table
+    imagen_url = Column(String(255))  # URL to asset photo
+    garantia_fecha_fin = Column(Date)  # End of warranty date
+    responsable_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from usuarios to seg_usuario
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("proveedores_activos.id"))
     
     # Status
-    estado = Column(SQLEnum(EstadoActivo), default=EstadoActivo.ACTIVO)
-    fecha_baja = Column(Date)  # Date of asset disposal
-    motivo_baja = Column(String(200))  # Reason for disposal
-    
-    # Maintenance tracking
-    fecha_ultimo_mantenimiento = Column(Date)
-    proximo_mantenimiento = Column(Date)  # Next scheduled maintenance
-    
-    # Metadata
-    comentarios = Column(Text)
-    imagen_url = Column(String(255))  # URL of asset image
-    datos_adicionales = Column(JSONB)  # Additional asset-specific data
+    activo = Column(Boolean, default=True)  # Whether asset is still in use
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True))
-    
+
     # Relationships
     categoria = relationship("CategoriaActivo", back_populates="activos")
-    departamento_asignado = relationship("Departamento")
-    empleado_asignado = relationship("Empleado")
-    mantenimientos = relationship("MantenimientoActivo", back_populates="activo")
-    depreciaciones = relationship("DepreciacionActivo", back_populates="activo")
+    ubicacion = relationship("UbicacionAlmacen", back_populates="activos")  # Changed to correct warehouse location class
+    responsable = relationship("Usuario")  # Changed from Usuario to match correct model
+    proveedor = relationship("ProveedorActivo", back_populates="activos")
+    historial_mantenimiento = relationship("HistorialMantenimientoActivo", back_populates="activo")
+    asignaciones = relationship("AsignacionActivo", back_populates="activo")
+
+
+class HistorialMantenimientoActivo(Base):
+    """Maintenance history for assets"""
+    __tablename__ = "historial_mantenimiento_activos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    activo_id = Column(UUID(as_uuid=True), ForeignKey("activos.id"), nullable=False)
+    
+    # Maintenance info
+    tipo_mantenimiento = Column(SQLEnum(TipoMantenimiento), nullable=False)
+    descripcion = Column(Text, nullable=False)
+    fecha_mantenimiento = Column(Date, nullable=False)
+    costo = Column(Numeric(10, 2))
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("proveedores_activos.id"))
+    tecnico_nombre = Column(String(100))  # Name of technician who performed maintenance
+    duracion_horas = Column(Integer)  # Duration of maintenance in hours
+    proximo_mantenimiento = Column(Date)  # Next scheduled maintenance date
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    activo = relationship("Activo", back_populates="historial_mantenimiento")
+    proveedor = relationship("ProveedorActivo")
+
+
+class AsignacionActivo(Base):
+    """Asset assignment model"""
+    __tablename__ = "asignaciones_activos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    activo_id = Column(UUID(as_uuid=True), ForeignKey("activos.id"), nullable=False)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)  # Changed from usuarios to seg_usuario - Assigned user
+    
+    # Assignment info
+    fecha_asignacion = Column(Date, nullable=False)
+    fecha_devolucion = Column(Date)  # Return date, null if still assigned
+    motivo_asignacion = Column(Text)
+    estado_salida = Column(SQLEnum(EstadoActivo), nullable=False)  # Condition when assigned
+    estado_retorno = Column(SQLEnum(EstadoActivo))  # Condition when returned, null if still assigned
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    activo = relationship("Activo", back_populates="asignaciones")
+    usuario = relationship("Usuario")  # Changed from Usuario to match correct model
+
+
+class ProveedorActivo(Base):
+    """Asset provider model"""
+    __tablename__ = "proveedores_activos"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    nombre = Column(String(200), nullable=False)
+    contacto_nombre = Column(String(100))
+    contacto_email = Column(String(100))
+    contacto_telefono = Column(String(20))
+    direccion = Column(String(255))
+    sitio_web = Column(String(255))
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    activos = relationship("Activo", back_populates="proveedor")
+    contratos = relationship("ContratoMantenimiento", back_populates="proveedor")
+
+
+class ContratoMantenimiento(Base):
+    """Maintenance contract model"""
+    __tablename__ = "contratos_mantenimiento"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("proveedores_activos.id"), nullable=False)
+    numero_contrato = Column(String(100), unique=True, nullable=False)
+    
+    # Contract info
+    descripcion = Column(Text)
+    fecha_inicio = Column(Date, nullable=False)
+    fecha_fin = Column(Date, nullable=False)
+    costo_anual = Column(Numeric(10, 2))
+    cobertura = Column(Text)  # What is covered by the contract
+    condiciones_especiales = Column(Text)
+    archivo_url = Column(String(255))  # URL to contract document
+    
+    # Status
+    activo = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    proveedor = relationship("ProveedorActivo", back_populates="contratos")
+    activos = relationship("Activo", secondary="activo_contrato_mantenimiento", back_populates="contratos")
+
+
+# Association table for many-to-many relationship between assets and maintenance contracts
+activo_contrato_mantenimiento = Table(
+    "activo_contrato_mantenimiento",
+    Base.metadata,
+    Column("activo_id", UUID(as_uuid=True), ForeignKey("activos.id"), primary_key=True),
+    Column("contrato_id", UUID(as_uuid=True), ForeignKey("contratos_mantenimiento.id"), primary_key=True)
+)
 
 
 class MantenimientoActivo(Base):
-    """Asset maintenance tracking - Seguimiento de mantenimientos de activos"""
-    __tablename__ = "am_mantenimiento_activo"
+    """Asset maintenance model"""
+    __tablename__ = "mantenimientos_activos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    activo_id = Column(UUID(as_uuid=True), ForeignKey("am_activo.id"), nullable=False)
-    tecnico_asignado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Assigned technician
-    
-    # Maintenance details
+    activo_id = Column(UUID(as_uuid=True), ForeignKey("activos.id"), nullable=False)
     tipo_mantenimiento = Column(SQLEnum(TipoMantenimiento), nullable=False)
-    titulo = Column(String(150), nullable=False)
-    descripcion = Column(Text)
-    
-    # Schedule and completion
-    fecha_solicitud = Column(Date, nullable=False, server_default=func.current_date())
+    descripcion = Column(Text, nullable=False)
     fecha_programada = Column(Date, nullable=False)
-    fecha_inicio = Column(DateTime(timezone=True))  # When maintenance started
-    fecha_fin = Column(DateTime(timezone=True))  # When maintenance finished
-    fecha_realizacion = Column(Date)  # Actual realization date
-    
-    # Status and costs
+    fecha_realizacion = Column(Date)
+    costo_estimado = Column(Numeric(10, 2))
+    costo_real = Column(Numeric(10, 2))
     estado = Column(SQLEnum(EstadoMantenimiento), default=EstadoMantenimiento.PENDIENTE)
-    costo = Column(Numeric(10, 2), default=0.00)  # Maintenance cost
-    proveedor_servicio_id = Column(UUID(as_uuid=True), ForeignKey("com_proveedor.id"))  # Service provider if external
-    
-    # Results
+    responsable_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from usuarios to seg_usuario - Technician responsible
+    proveedor_id = Column(UUID(as_uuid=True), ForeignKey("proveedores_activos.id"))
+    proximo_mantenimiento = Column(Date)  # Fecha del próximo mantenimiento programado
     observaciones = Column(Text)
-    repuestos_utilizados = Column(Text)  # Parts replaced
-    proximo_mantenimiento = Column(Date)  # Next maintenance schedule
     
-    # Metadata
-    creado_por_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # Created by user
-    completado_por_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # Completed by user
+    # Status
+    activo = Column(Boolean, default=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+    deleted_at = Column(DateTime(timezone=True))
+
     # Relationships
-    activo = relationship("Activo", back_populates="mantenimientos")
-    tecnico_asignado = relationship("Empleado", foreign_keys=[tecnico_asignado_id])
-    proveedor_servicio = relationship("Proveedor")
-    creado_por = relationship("Usuario", foreign_keys=[creado_por_id])
-    completado_por = relationship("Usuario", foreign_keys=[completado_por_id])
+    activo = relationship("Activo")
+    responsable = relationship("Usuario")  # Changed from Usuario to match correct model
+    proveedor = relationship("ProveedorActivo")
 
 
 class DepreciacionActivo(Base):
-    """Asset depreciation tracking - Seguimiento de depreciación de activos"""
-    __tablename__ = "am_depreciacion_activo"
+    """Asset depreciation model"""
+    __tablename__ = "depreciaciones_activos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    activo_id = Column(UUID(as_uuid=True), ForeignKey("am_activo.id"), nullable=False)
-    
-    # Depreciation details
+    activo_id = Column(UUID(as_uuid=True), ForeignKey("activos.id"), nullable=False)
     anio = Column(Integer, nullable=False)  # Year of depreciation
-    mes = Column(Integer, nullable=False)  # Month of depreciation (1-12)
-    metodo = Column(SQLEnum(MetodoDepreciacion), nullable=False)  # Method used
-    
-    # Values
-    valor_entrada = Column(Numeric(12, 2), nullable=False)  # Starting value for this period
-    depreciacion_periodo = Column(Numeric(12, 2), nullable=False)  # Depreciation for this period
-    depreciacion_acumulada = Column(Numeric(12, 2), nullable=False)  # Accumulated depreciation
-    valor_libros = Column(Numeric(12, 2), nullable=False)  # Book value after depreciation
+    mes = Column(Integer)  # Month of depreciation (nullable for annual calculations)
+    metodo = Column(SQLEnum(MetodoDepreciacion), nullable=False)
+    valor_adquisicion = Column(Numeric(10, 2), nullable=False)
+    valor_residual = Column(Numeric(10, 2), default=0.0)
+    vida_util_total = Column(Integer, nullable=False)  # Total useful life in months or years
+    vida_util_restante = Column(Integer, nullable=False)  # Remaining useful life
+    depreciacion_periodo = Column(Numeric(10, 2), nullable=False)  # Depreciation for this period
+    depreciacion_acumulada = Column(Numeric(10, 2), nullable=False)  # Accumulated depreciation
+    valor_libros = Column(Numeric(10, 2), nullable=False)  # Book value at the end of period
     
     # Status
-    procesado = Column(Boolean, default=False)  # Processed in accounting
-    fecha_procesamiento = Column(DateTime(timezone=True))  # When processed
-    
-    # Metadata
-    comentarios = Column(Text)
+    activo = Column(Boolean, default=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
-    activo = relationship("Activo", back_populates="depreciaciones")
+    activo = relationship("Activo")
 
 
 class HistorialAsignacion(Base):
-    """Asset assignment history - Historial de asignaciones de activos"""
-    __tablename__ = "am_historial_asignacion"
+    """Asset assignment history model"""
+    __tablename__ = "historial_asignaciones_activos"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    activo_id = Column(UUID(as_uuid=True), ForeignKey("am_activo.id"), nullable=False)
+    activo_id = Column(UUID(as_uuid=True), ForeignKey("activos.id"), nullable=False)
+    empleado_anterior_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from usuarios to seg_usuario - Previous employee
+    empleado_nuevo_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"))  # Changed from usuarios to seg_usuario - New employee
+    departamento_anterior_id = Column(Integer, ForeignKey("departamentos.id"))  # Changed from UUID to Integer to match departamentos
+    departamento_nuevo_id = Column(Integer, ForeignKey("departamentos.id"))  # Changed from UUID to Integer to match departamentos
+    ubicacion_anterior = Column(String(200))  # Previous location
+    ubicacion_nueva = Column(String(200))  # New location
+    fecha_inicio = Column(Date, nullable=False)  # Date when assignment started
+    fecha_fin = Column(Date)  # Date when assignment ended
+    motivo_transferencia = Column(Text)  # Reason for transfer
+    estado_anterior = Column(SQLEnum(EstadoActivo))  # State when assigned
+    estado_actual = Column(SQLEnum(EstadoActivo))  # State when returned/changed
     
-    # Assignment details
-    empleado_anterior_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Previous assignee
-    empleado_nuevo_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # New assignee
-    departamento_anterior_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))  # Previous department
-    departamento_nuevo_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))  # New department
-    
-    # Location
-    ubicacion_anterior = Column(String(150))  # Previous location
-    ubicacion_nueva = Column(String(150))  # New location
-    
-    # Timeline
-    fecha_inicio = Column(Date, nullable=False)  # Start date of assignment
-    fecha_fin = Column(Date)  # End date of assignment (null if current)
-    
-    # Metadata
-    motivo_cambio = Column(String(200))  # Reason for change
-    realizado_por_id = Column(UUID(as_uuid=True), ForeignKey("auth_usuario.id"))  # Performed by user
-    comentarios = Column(Text)
+    # Status
+    activo = Column(Boolean, default=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
     activo = relationship("Activo")
-    empleado_anterior = relationship("Empleado", foreign_keys=[empleado_anterior_id])
-    empleado_nuevo = relationship("Empleado", foreign_keys=[empleado_nuevo_id])
+    empleado_anterior = relationship("Usuario", foreign_keys=[empleado_anterior_id])  # Changed from Usuario to match correct model
+    empleado_nuevo = relationship("Usuario", foreign_keys=[empleado_nuevo_id])  # Changed from Usuario to match correct model
     departamento_anterior = relationship("Departamento", foreign_keys=[departamento_anterior_id])
     departamento_nuevo = relationship("Departamento", foreign_keys=[departamento_nuevo_id])
-    realizado_por = relationship("Usuario")

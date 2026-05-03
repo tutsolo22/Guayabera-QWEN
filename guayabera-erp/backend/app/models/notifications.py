@@ -3,15 +3,15 @@ Notification System Models: User notifications, tasks, and tracking
 Specialized for ERP system notifications
 """
 
-from sqlalchemy import (Column, String, Boolean, DateTime, ForeignKey, Text, 
-                        Float, Integer, Date, Numeric, CheckConstraint, Enum as SQLEnum)
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import (
+    Column, Integer, String, DateTime, ForeignKey, Text, 
+    Boolean, Date, Numeric, CheckConstraint, 
+    func, UniqueConstraint, Index
+)
+from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-import uuid
-import enum
-
 from app.core.database import Base
+import enum
 
 
 # ============================================================================
@@ -19,32 +19,29 @@ from app.core.database import Base
 # ============================================================================
 
 class TipoNotificacion(enum.Enum):
-    TAREA = "tarea"
+    """Tipos de notificaciones"""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    SUCCESS = "success"
     ALERTA = "alerta"
     AVISO = "aviso"
-    SOLICITUD = "solicitud"
+    TAREA = "tarea"
     AUTORIZACION = "autorizacion"
-    ESTADO_CAMBIO = "estado_cambio"
-    SISTEMA = "sistema"
+    SOLICITUD = "solicitud"
 
 
 class PrioridadNotificacion(enum.Enum):
-    BAJA = "baja"
-    NORMAL = "normal"
-    ALTA = "alta"
-    URGENTE = "urgente"
-
-
-class EstadoNotificacion(enum.Enum):
-    PENDIENTE = "pendiente"
-    LEIDA = "leida"
-    PROCESADA = "procesada"
-    CERRADA = "cerrada"
-    CANCELADA = "cancelada"
+    """Prioridades de notificaciones"""
+    BAJA = 1
+    NORMAL = 2
+    ALTA = 3
+    URGENTE = 4
 
 
 class CanalNotificacion(enum.Enum):
-    INTERNO = "interno"
+    """Canales de entrega de notificaciones"""
+    INTERNO = "interno"  # Dentro del sistema ERP
     EMAIL = "email"
     SMS = "sms"
     PUSH = "push"
@@ -55,124 +52,111 @@ class CanalNotificacion(enum.Enum):
 # ============================================================================
 
 class Notificacion(Base):
-    """Notification management - Gestión de notificaciones"""
-    __tablename__ = "not_notificacion"
+    """Modelo para gestionar notificaciones del sistema"""
+    __tablename__ = "notificaciones"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    
-    # Notification identification
+    id = Column(Integer, primary_key=True, index=True)
     titulo = Column(String(200), nullable=False)
-    descripcion = Column(Text, nullable=False)
+    contenido = Column(Text, nullable=False)
+    tipo = Column(String(50), nullable=False)  # info, warning, error, success
+    prioridad = Column(Integer, default=1)  # 1-baja, 2-media, 3-alta
+    leido = Column(Boolean, default=False)
+    fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
+    fecha_lectura = Column(DateTime(timezone=True), nullable=True)
     
-    # Classification
-    tipo = Column(SQLEnum(TipoNotificacion), nullable=False)
-    prioridad = Column(SQLEnum(PrioridadNotificacion), default=PrioridadNotificacion.NORMAL)
-    canal = Column(SQLEnum(CanalNotificacion), default=CanalNotificacion.INTERNO)
+    # Cambiamos 'metadata' por 'datos_adicionales' para evitar conflicto con el nombre reservado
+    datos_adicionales = Column(JSON, nullable=True)  # Almacenar datos adicionales en formato JSON
     
-    # Recipient and sender
-    destinatario_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)  # Employee receiving notification
-    remitente_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Employee sending notification
-    departamento_destinatario_id = Column(UUID(as_uuid=True), ForeignKey("rh_departamento.id"))  # Department if for all employees
+    # Relaciones
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)  # Changed from Integer to UUID to match seg_usuario
+    usuario = relationship("Usuario", back_populates="notificaciones_recibidas")
     
-    # Link to related records
-    tipo_relacion = Column(String(50))  # Type of related record (ticket, requisition, etc.)
-    id_relacion = Column(UUID(as_uuid=True))  # ID of related record
+    # Usuario que enviÃ³ la notificaciÃ³n
+    remitente_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=True)  # Changed from Integer to UUID to match seg_usuario
+    remitente = relationship("Usuario", foreign_keys=[remitente_id], back_populates="notificaciones_enviadas")
     
-    # Status and tracking
-    estado = Column(SQLEnum(EstadoNotificacion), default=EstadoNotificacion.PENDIENTE)
-    fecha_envio = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
-    fecha_leido = Column(DateTime(timezone=True))
-    fecha_procesado = Column(DateTime(timezone=True))
-    fecha_cierre = Column(DateTime(timezone=True))
-    
-    # Task completion tracking
-    requiere_confirmacion = Column(Boolean, default=False)  # Does this require user action?
-    fecha_vencimiento = Column(DateTime(timezone=True))  # Deadline for action
-    intentos_envio = Column(Integer, default=0)  # Number of delivery attempts
-    
-    # Additional data
-    datos_adicionales = Column(JSONB)  # Additional data for the notification
-    metadata = Column(JSONB)  # Metadata for audit trail
-    
-    # Status
-    activa = Column(Boolean, default=True)
-    
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    deleted_at = Column(DateTime(timezone=True))
-    
-    # Relationships
-    destinatario = relationship("Empleado", foreign_keys=[destinatario_id])
-    remitente = relationship("Empleado", foreign_keys=[remitente_id])
-    departamento_destinatario = relationship("Departamento")
+    # Relaciones para nuevos modelos
+    historial = relationship("HistorialNotificacion", back_populates="notificacion")
+    acciones = relationship("AccionNotificacion", back_populates="notificacion")
     comentarios = relationship("ComentarioNotificacion", back_populates="notificacion")
 
 
-class ComentarioNotificacion(Base):
-    """Comments for notifications - Comentarios para notificaciones"""
-    __tablename__ = "not_comentario_notificacion"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    notificacion_id = Column(UUID(as_uuid=True), ForeignKey("not_notificacion.id"), nullable=False)
-    autor_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
-    
-    # Comment content
+
+class HistorialNotificacion(Base):
+    """Historial de notificaciones enviadas"""
+    __tablename__ = "historial_notificaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    notificacion_id = Column(Integer, ForeignKey("notificaciones.id"), nullable=False)
+    autor_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)  # Changed from Integer to UUID to match seg_usuario
     contenido = Column(Text, nullable=False)
-    
-    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
-    # Relationships
+
+    # Relaciones
+    notificacion = relationship("Notificacion", back_populates="historial")
+    autor = relationship("Usuario", back_populates="historial_notificaciones")  # Changed from User to Usuario
+
+
+class ComentarioNotificacion(Base):
+    """Modelo para comentarios en notificaciones"""
+    __tablename__ = "comentarios_notificaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    notificacion_id = Column(Integer, ForeignKey("notificaciones.id"), nullable=False)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=False)  # Changed from Integer to UUID to match seg_usuario
+    contenido = Column(Text, nullable=False)
+    fecha_comentario = Column(DateTime(timezone=True), server_default=func.now())
+    activo = Column(Boolean, default=True)
+
+    # Relaciones
     notificacion = relationship("Notificacion", back_populates="comentarios")
-    autor = relationship("Empleado")
+    usuario = relationship("Usuario", back_populates="comentarios_notificaciones")  # Changed from User to Usuario
 
 
 class ConfiguracionNotificacion(Base):
-    """Notification settings per user - Configuración de notificaciones por usuario"""
-    __tablename__ = "not_configuracion"
+    """ConfiguraciÃ³n de notificaciones por empleado"""
+    __tablename__ = "config_notificaciones"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    empleado_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"), nullable=False)  # Changed from Integer to UUID to match rh_empleado
     
-    # Notification preferences
+    # Preferencias de notificaciÃ³n
     notificar_tareas = Column(Boolean, default=True)
     notificar_alertas = Column(Boolean, default=True)
     notificar_solicitudes = Column(Boolean, default=True)
     notificar_autorizaciones = Column(Boolean, default=True)
     
-    # Channel preferences
+    # MÃ©todos de notificaciÃ³n preferidos
     recibir_email = Column(Boolean, default=True)
     recibir_push = Column(Boolean, default=True)
     recibir_sms = Column(Boolean, default=False)
     
-    # Status
+    # Estado
     activa = Column(Boolean, default=True)
     
-    # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relaciones
+    empleado = relationship("Empleado", back_populates="config_notificaciones")
+
+
+class AccionNotificacion(Base):
+    """Acciones tomadas en base a notificaciones"""
+    __tablename__ = "acciones_notificaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    notificacion_id = Column(Integer, ForeignKey("notificaciones.id"), nullable=False)
     
-    # Relationships
-    empleado = relationship("Empleado")
-
-
-class HistorialNotificacion(Base):
-    """Notification history for audit trail - Historial de notificaciones para auditoría"""
-    __tablename__ = "not_historial"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    notificacion_id = Column(UUID(as_uuid=True), ForeignKey("not_notificacion.id"), nullable=False)
-    
-    # Action details
-    accion = Column(String(50), nullable=False)  # "enviado", "leido", "procesado", "cerrado", etc.
+    # AcciÃ³n realizada
+    accion = Column(String(100), nullable=False)  # aprobada, rechazada, vista, etc.
     descripcion_accion = Column(Text)
-    responsable_id = Column(UUID(as_uuid=True), ForeignKey("rh_empleado.id"))  # Employee who performed the action
+    responsable_id = Column(UUID(as_uuid=True), ForeignKey("seg_usuario.id"), nullable=True)  # Changed from Integer to UUID to match seg_usuario
     
-    # Timestamps
-    fecha_accion = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    fecha_accion = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
-    notificacion = relationship("Notificacion")
-    responsable = relationship("Empleado")
+    # Relaciones
+    notificacion = relationship("Notificacion", back_populates="acciones")
+    responsable = relationship("Usuario", back_populates="acciones_notificaciones")  # Changed from User to Usuario

@@ -19,7 +19,8 @@ import {
   SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  DollarCircleOutlined
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/features/auth/authSlice';
@@ -129,6 +130,10 @@ const MainLayout: React.FC = () => {
         {
           key: 'sales-dashboard',
           label: <Link to="/sales">Panel de Ventas</Link>,
+        },
+        {
+          key: 'sales-configuration',
+          label: <Link to="/sales-configuration">Configuración de Ventas</Link>,
         },
         {
           key: 'client-level-pricing',
