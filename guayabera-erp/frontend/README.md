@@ -1,3 +1,68 @@
+# Frontend - Guayabera ERP
+
+## Descripción
+
+Este es el componente frontend de la suite Guayabera ERP, un sistema integral de planificación de recursos empresariales con una identidad visual profesional y moderna.
+
+## Identidad Visual
+
+La interfaz de usuario sigue los principios de la identidad visual del proyecto Guayabera ERP, que combina:
+
+- **Profesionalismo**: Interfaces limpias y organizadas que facilitan la toma de decisiones empresariales
+- **Modernidad**: Diseño contemporáneo con elementos visuales claros y jerarquía visual bien definida
+- **Adaptabilidad**: Responsive design que funciona en múltiples dispositivos y contextos
+- **Escalabilidad**: Sistema de componentes modulares que permite extender la interfaz fácilmente
+
+## Paleta de Colores
+
+### Colores Primarios:
+- **Azul Profundo (#1B365D)**: Usado para encabezados y elementos de navegación
+- **Verde Empresarial (#2E8B57)**: Usado para indicadores de éxito y validaciones
+- **Gris Noble (#F5F7FA)**: Color de fondo principal
+
+### Colores Secundarios:
+- **Naranja Destaque (#FF8C42)**: Para botones primarios y llamadas a la acción
+- **Verde Energía (#4A9B3F)**: Indicadores positivos y validaciones
+- **Rojo Alerta (#DC3545)**: Errores, alertas y elementos críticos
+- **Amarillo Destaque (#F4D03F)**: Notificaciones y elementos de atención media
+
+## Estructura de Archivos
+
+- `/public`: Archivos públicos y recursos estáticos
+- `/src`: Código fuente del frontend
+  - `/components`: Componentes reutilizables
+  - `/services`: Servicios de comunicación con el backend
+  - `/store`: Almacenamiento de estado global (si aplica)
+  - `/styles`: Archivos de estilos CSS
+    - `variables.css`: Variables de diseño con la paleta de colores
+    - `index.css`: Estilos base y componentes visuales
+
+## Instalación
+
+1. Asegúrate de tener Node.js instalado en tu sistema
+2. Instala las dependencias:
+```bash
+npm install
+```
+3. Inicia el servidor de desarrollo:
+```bash
+npm start
+```
+
+## Contribución
+
+Cuando contribuyas al frontend, por favor:
+
+1. Sigue la identidad visual definida en la paleta de colores
+2. Usa las variables CSS definidas en `variables.css`
+3. Mantén la coherencia visual con los componentes existentes
+4. Asegúrate de que los nuevos componentes sean responsive
+5. Documenta nuevos componentes visuales en este README
+
+## Licencia
+
+Este proyecto forma parte de Guayabera ERP Suite y se distribuye bajo la licencia MIT.
+
 # 🎨 GuayaberaERP Frontend - React + Ant Design
 
 ## 🚀 Inicio Rápido
