@@ -115,6 +115,13 @@ Este documento resume los principales desarrollos realizados en la versión 2.0 
 6. **Reportes Consolidados**: Implementar reportes que muestren información consolidada para grupos corporativos
 7. **Notificaciones por Email**: Implementar un sistema completo de notificaciones por correo electrónico con plantillas personalizables
 
+## Resolución de Incidencias
+
+### Corrección de Error 500 en `/api/v1/auth/register-superuser`
+Durante la inicialización del sistema se detectó un error 500 Internal Server Error al intentar crear el primer superusuario global mediante Postman. 
+La causa raíz fue un error de mapeo de SQLAlchemy en los modelos de licencias: `sqlalchemy.exc.InvalidRequestError: Mapper 'Mapper[TipoLicencia(tipos_licencia)]' has no property 'licencias_asignadas'`.
+Se solucionó agregando la relación `licencias_asignadas = relationship("Licencia", back_populates="tipo_licencia")` al modelo `TipoLicencia` en `app/models/licencia.py`, permitiendo que el inicializador de la base de datos complete su configuración y el endpoint procese correctamente la petición (retornando 400 Bad Request en lugar de 500, en el caso de que el superusuario ya exista).
+
 ## Conclusión
 
 La versión 2.0 del ERP Guayabera implementa una sólida arquitectura multitenant que permite servir a múltiples empresas desde una única instancia del sistema, manteniendo la seguridad y privacidad de los datos de cada tenant. La implementación del superusuario global facilita la administración del sistema y la supervisión de todas las operaciones. Además, la funcionalidad de grupos corporativos y empresas filiales permite automatizar operaciones entre empresas relacionadas, mejorando la eficiencia operativa para estructuras corporativas complejas. El sistema de licencias flexible permite diferentes modelos de negocio y periodos de prueba, facilitando la adopción del sistema por nuevos clientes.

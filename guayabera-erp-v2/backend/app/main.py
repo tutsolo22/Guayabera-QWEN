@@ -73,7 +73,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # Manejador de excepciones global
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: object, exc: Exception):
     logger.error(f"Error no manejado: {exc}")
     return HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

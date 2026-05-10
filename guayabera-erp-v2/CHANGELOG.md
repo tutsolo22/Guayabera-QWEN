@@ -4,6 +4,9 @@ Todos los cambios notables en el proyecto Guayabera ERP Suite v2.0 serán docume
 
 ## [2.0.0] - TBD
 
+### Fixed
+- Error 500 (Internal Server Error) en el endpoint `/api/v1/auth/register-superuser` provocado por un manejo asíncrono incorrecto de `scalars()` al verificar superusuarios existentes.
+
 ### Added
 - Arquitectura multitenant desde el inicio del proyecto
 - Superusuario administrador global del sistema

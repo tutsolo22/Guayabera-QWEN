@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Card, Tag, Space } from 'antd';
+import { Table, Button, Modal, Form as AntdForm, Input as AntdInput, Select as AntdSelect, message, Tag, Space } from 'antd';
 import axios from 'axios';
-
-const { TextArea } = Input;
 
 const TenantsList: React.FC = () => {
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTenant, setEditingTenant] = useState<any>(null);
+  const [form] = AntdForm.useForm();
 
   // Mock data for tenants
   useEffect(() => {
@@ -140,8 +139,15 @@ const TenantsList: React.FC = () => {
     },
   ];
 
+  // Filter non-corporate tenants to use as subsidiaries
+  const nonCorporateTenants = tenants.filter(tenant => !tenant.es_grupo_corporativo);
+  
+  // Filter corporate group tenants to assign as parent
+  const corporateTenants = tenants.filter(tenant => tenant.es_grupo_corporativo);
+
   return (
-    <Card title="Gestión de Empresas (Tenants)">
+    <div style={{ padding: 24 }}>
+      <h2 style={{ color: '#1B365D', marginBottom: 16 }}>Gestión de Empresas (Tenants)</h2>
       <Button 
         type="primary" 
         style={{ marginBottom: 16 }} 
@@ -165,62 +171,87 @@ const TenantsList: React.FC = () => {
         okText="Guardar"
         cancelText="Cancelar"
       >
-        {/* @ts-ignore */}
-        <Form
+        <AntdForm
           layout="vertical"
+          form={form}
           name="tenant_form"
         >
-          <Form.Item
+          <AntdForm.Item
             name="name"
             label="Nombre de la Empresa"
             rules={[{ required: true, message: 'Por favor ingrese el nombre de la empresa' }]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="name-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="subdomain"
             label="Subdominio"
             rules={[{ required: true, message: 'Por favor ingrese el subdominio' }]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="subdomain-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="contact_email"
             label="Email de Contacto"
             rules={[{ type: 'email', message: 'Ingrese un email válido' }]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="email-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="contact_phone"
             label="Teléfono de Contacto"
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="phone-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="descripcion"
             label="Descripción"
           >
-            <TextArea rows={4} />
-          </Form.Item>
+            <AntdInput.TextArea id="description-input" rows={4} />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="es_grupo_corporativo"
             label="¿Es Grupo Corporativo?"
-            rules={[{ required: true, message: 'Por favor seleccione una opción' }]}
+            valuePropName="checked"
           >
-            <Select placeholder="Seleccione una opción">
-              <Select.Option value="true">Sí</Select.Option>
-              <Select.Option value="false">No</Select.Option>
-            </Select>
-          </Form.Item>
-        </Form>
+            <AntdSelect id="corporate-group-select" placeholder="Seleccione una opción">
+              <AntdSelect.Option value="true">Sí</AntdSelect.Option>
+              <AntdSelect.Option value="false">No</AntdSelect.Option>
+            </AntdSelect>
+          </AntdForm.Item>
+          
+          {/* Conditional field to select parent corporate group if this is a subsidiary */}
+          <AntdForm.Item 
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.es_grupo_corporativo !== currentValues.es_grupo_corporativo}
+          >
+            {({ getFieldValue }) => {
+              const isCorporateGroup = getFieldValue('es_grupo_corporativo') === 'false';
+              
+              if (!isCorporateGroup) {
+                return (
+                  <AntdForm.Item
+                    name="grupo_corporativo_id"
+                    label="Grupo Corporativo al que Pertenece"
+                  >
+                    <AntdSelect id="parent-corp-select" placeholder="Seleccione el grupo corporativo">
+                      {/* This would be populated with actual corporate groups */}
+                      <AntdSelect.Option value="2">Grupo Corporativo XYZ</AntdSelect.Option>
+                    </AntdSelect>
+                  </AntdForm.Item>
+                );
+              }
+              return null;
+            }}
+          </AntdForm.Item>
+        </AntdForm>
       </Modal>
-    </Card>
+      </div>
   );
 };
 

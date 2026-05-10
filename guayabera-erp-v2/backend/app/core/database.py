@@ -1,19 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.pool import AsyncAdaptedQueuePool
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import MetaData
-from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 import logging
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Configurar metadatos con esquema personalizado si es necesario
+# Metadata object para controlar nuestro esquema de base de datos
 metadata = MetaData(schema="public")
 
-# Crear motor de base de datos asincrónico
+# Configurar motor asincrónico
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DB_ECHO,
@@ -24,37 +24,41 @@ engine = create_async_engine(
     pool_recycle=300,
 )
 
-# Crear sesión asíncrona
+# Crear un generador local de sesiones
 AsyncSessionLocal = async_sessionmaker(
-    engine, 
-    class_=None,
+    engine,
+    class_=AsyncSession,
     expire_on_commit=False
 )
 
 # Base para modelos
 Base = declarative_base(metadata=metadata)
 
+# Importaciones de modelos después de crear la Base para evitar problemas de importación circular
+from app.models.usuario import Usuario  # noqa: F401
+from app.models.tenant import Tenant  # noqa: F401
+from app.models.admin import Admin  # noqa: F401
+from app.models.licencia import Licencia, TipoLicencia  # noqa: F401
+from app.models.token import TokenVerificacion  # noqa: F401
+
 
 async def init_db():
-    """Inicializar la base de datos"""
-    from app.models.usuario import Usuario  # Importar modelos aquí para registrarlos
-    from app.models.tenant import Tenant
-    from app.models.admin import Admin
-    from app.models.licencia import Licencia, TipoLicencia
-    from app.models.token import TokenVerificacion
-    
+    """Inicializa la base de datos creando todas las tablas."""
     async with engine.begin() as conn:
-        # Crear tablas si no existen
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(metadata.create_all)
         
     logger.info("Base de datos inicializada correctamente")
 
 
-@asynccontextmanager
-async def get_db():
-    """Obtener sesión de base de datos"""
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """
+    Obtiene una sesión de base de datos para dependencias de FastAPI.
+    
+    Yields:
+        db_session: Sesión de base de datos
+    """
     async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
+
+# Alias for backwards compatibility with existing endpoints
+get_db = get_db_session

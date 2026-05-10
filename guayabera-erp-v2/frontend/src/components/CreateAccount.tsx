@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LockOutlined } from '@ant-design/icons';
-import { Button, Form, Input, message } from 'antd';
+import { Button, Form as AntdForm, Input as AntdInput, message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { confirmRegistration } from '../services/authService';
 
@@ -63,23 +63,23 @@ const CreateAccount: React.FC = () => {
           <p>Establecer contraseña</p>
         </div>
         
-        {/* @ts-ignore */}
-        <Form 
+        <AntdForm 
           name="create_account_form" 
           onFinish={onFinish}
           layout="vertical"
         >
-          <Form.Item
+          <AntdForm.Item
             name="password"
             label="Nueva Contraseña"
             rules={[{ required: true, message: 'Por favor ingrese su contraseña' }]}
           >
-            <Input.Password
+            <AntdInput.Password
+              id="password-input"
               placeholder="Contraseña"
             />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="confirm"
             label="Confirmar Contraseña"
             dependencies={['password']}
@@ -95,12 +95,13 @@ const CreateAccount: React.FC = () => {
               }),
             ]}
           >
-            <Input.Password
+            <AntdInput.Password
+              id="confirm-password-input"
               placeholder="Confirma tu contraseña"
             />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item>
+          <AntdForm.Item>
             <Button
               type="primary"
               htmlType="submit"
@@ -113,8 +114,8 @@ const CreateAccount: React.FC = () => {
             >
               Crear Cuenta
             </Button>
-          </Form.Item>
-        </Form>
+          </AntdForm.Item>
+        </AntdForm>
       </div>
     </div>
   );

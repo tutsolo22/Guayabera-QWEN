@@ -57,6 +57,5 @@ class Tenant(Base):
     def __repr__(self):
         return f"<Tenant(id={self.id}, name='{self.name}', subdomain='{self.subdomain}')>"
 
-
-    def __repr__(self):
-        return f"<Tenant(id={self.id}, name='{self.name}', subdomain='{self.subdomain}')>"
+# Alias for backwards compatibility
+TenantCorporation = GrupoCorporativo

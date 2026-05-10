@@ -1,10 +1,13 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, tenants, users, operaciones_filiales, licencias
+from app.api.v1.endpoints import auth, tenants, users, operaciones_filiales, licencias, admin
 
 api_router = APIRouter()
 
 # Rutas de autenticación
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+
+# Rutas de administración (solo para superadmin)
+api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 # Rutas de tenants
 api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])

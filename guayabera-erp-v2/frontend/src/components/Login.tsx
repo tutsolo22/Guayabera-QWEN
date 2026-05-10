@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Checkbox, Form, Input, Card, message } from 'antd';
+import { Button, Checkbox, Form as AntdForm, Input as AntdInput, Card, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../services/authService';
@@ -66,51 +66,53 @@ const Login: React.FC = () => {
           <p>Iniciar Sesión</p>
         </div>
         
-        <Form
+        <AntdForm
           name="login_form"
-          initialValues={{ remember: true }}
+          initialValues={ { remember: true } }
           onFinish={onFinish}
         >
-          <Form.Item
+          <AntdForm.Item
             name="username"
             rules={[{ required: true, message: 'Por favor ingrese su correo electrónico' }]}
           >
-            <Input
+            <AntdInput
+              id="username-input"
               prefix={<UserOutlined />}
               placeholder="Correo electrónico"
               onClick={handleClearError}
             />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="password"
             rules={[{ required: true, message: 'Por favor ingrese su contraseña' }]}
           >
-            <Input
+            <AntdInput
+              id="password-input"
               prefix={<LockOutlined />}
               type="password"
               placeholder="Contraseña"
               onClick={handleClearError}
             />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item>
-            <Form.Item name="remember" valuePropName="checked" noStyle>
+          <AntdForm.Item>
+            <AntdForm.Item name="remember" valuePropName="checked" noStyle>
               <Checkbox>Recordarme</Checkbox>
-            </Form.Item>
+            </AntdForm.Item>
             
             <Link to="/recover-password" style={{ float: 'right' }}>
               ¿Olvidó su contraseña?
             </Link>
-          </Form.Item>
+          </AntdForm.Item>
           
           {error && (
-            <Form.Item>
+            <AntdForm.Item>
               <div style={{ color: '#DC3545', textAlign: 'center', marginBottom: 16 }}>{error}</div>
-            </Form.Item>
+            </AntdForm.Item>
           )}
 
-          <Form.Item>
+          <AntdForm.Item>
             <Button 
               type="primary" 
               htmlType="submit" 
@@ -127,8 +129,8 @@ const Login: React.FC = () => {
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               ¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link>
             </div>
-          </Form.Item>
-        </Form>
+          </AntdForm.Item>
+        </AntdForm>
       </Card>
     </div>
   );
