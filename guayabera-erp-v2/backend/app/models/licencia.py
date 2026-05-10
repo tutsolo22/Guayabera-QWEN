@@ -21,6 +21,9 @@ class TipoLicencia(Base):
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     updated_at: datetime = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
+    # Relaciones
+    licencias_asignadas = relationship("Licencia", back_populates="tipo_licencia")
+
 
 class Licencia(Base):
     """

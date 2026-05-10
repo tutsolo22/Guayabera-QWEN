@@ -458,10 +458,9 @@ async def register_super_user(
     """
     # Verificar que aún no exista un superusuario
     result = await db.execute(select(Admin))
-    existing_admins = await result.scalars()
-    admin_list = list(existing_admins)
+    existing_admins = result.scalars().all()
     
-    if len(admin_list) > 0:
+    if len(existing_admins) > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ya existe un superusuario registrado"

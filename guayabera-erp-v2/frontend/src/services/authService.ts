@@ -102,3 +102,76 @@ export const getLicenses = async () => {
     throw new Error(error.response?.data?.detail || 'Error al obtener licencias');
   }
 };
+
+// Super Admin API functions
+export const createTenant = async (tenantData: { name: string; subdomain: string; contact_email: string; descripcion: string }) => {
+  try {
+    const response = await api.post('/admin/crear-tenant', tenantData);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al crear tenant');
+  }
+};
+
+export const inviteTenantAdmin = async (email: string, tenantId: string) => {
+  try {
+    const response = await api.post('/admin/invitar-tenant-admin', { email, tenant_id: tenantId });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al invitar administrador');
+  }
+};
+
+export const getSuperAdminTenants = async () => {
+  try {
+    const response = await api.get('/admin/tenants');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al obtener tenants');
+  }
+};
+
+export const getCorporations = async () => {
+  try {
+    const response = await api.get('/admin/corporaciones');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al obtener corporaciones');
+  }
+};
+
+export const createCorporation = async (corpData: { name: string; descripcion?: string }) => {
+  try {
+    const response = await api.post('/admin/crear-corporacion', corpData);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al crear corporación');
+  }
+};
+
+export const createLicense = async (licenseData: any) => {
+  try {
+    const response = await api.post('/admin/crear-licencia', licenseData);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al crear licencia');
+  }
+};
+
+export const activateTenant = async (tenantId: string) => {
+  try {
+    const response = await api.put(`/admin/activar-tenant/${tenantId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al activar tenant');
+  }
+};
+
+export const deactivateTenant = async (tenantId: string) => {
+  try {
+    const response = await api.put(`/admin/desactivar-tenant/${tenantId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Error al desactivar tenant');
+  }
+};

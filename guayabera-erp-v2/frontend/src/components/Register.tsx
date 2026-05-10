@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LockOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
-import { Button, Form, Input, message, Space } from 'antd';
+import { Button, Form, Input, message } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../services/authService';
@@ -78,7 +78,7 @@ const Register: React.FC = () => {
         
         <Form
           name="register_form"
-          initialValues={{ remember: true }}
+          initialValues={ { remember: true } }
           onFinish={onFinish}
         >
           <Form.Item
@@ -86,7 +86,8 @@ const Register: React.FC = () => {
             rules={[{ required: true, message: 'Por favor ingrese su nombre completo' }]}
           >
             <Input
-              prefix={<UserOutlined />}
+              id="nombre-completo-input"
+              addonBefore={<UserOutlined />}
               placeholder="Nombre completo"
               onClick={handleClearError}
             />
@@ -106,7 +107,8 @@ const Register: React.FC = () => {
             ]}
           >
             <Input
-              prefix={<MailOutlined />}
+              id="email-input"
+              addonBefore={<MailOutlined />}
               placeholder="Correo electrónico"
               onClick={handleClearError}
             />

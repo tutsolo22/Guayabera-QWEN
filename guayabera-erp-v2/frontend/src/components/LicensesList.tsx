@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, DatePicker, message, Card, Space, Tag } from 'antd';
+import { Table, Button, Modal, Form as AntdForm, Input as AntdInput, Select as AntdSelect, DatePicker, message, Tag, Card, Space } from 'antd';
 import moment from 'moment';
 import axios from 'axios';
 
-const { Option } = Select;
+const { Option } = AntdSelect;
+const { TextArea } = AntdInput;
 
 const LicensesList: React.FC = () => {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingLicense, setEditingLicense] = useState<any>(null);
+  const [form] = AntdForm.useForm();
 
   // Mock data for licenses
   useEffect(() => {
@@ -188,83 +190,86 @@ const LicensesList: React.FC = () => {
       
       <Modal
         title={editingLicense ? "Editar Licencia" : "Agregar Licencia"}
-        open={modalVisible}
+        visible={modalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
         okText="Guardar"
         cancelText="Cancelar"
       >
-        {/* @ts-ignore */}
-        <Form
+        <AntdForm
           layout="vertical"
+          form={form}
           name="license_form"
         >
-          <Form.Item
+          <AntdForm.Item
             name="codigo"
             label="Código de Licencia"
             rules={[{ required: true, message: 'Por favor ingrese el código de la licencia' }]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="codigo-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="tenant_id"
             label="Empresa (Tenant)"
             rules={[{ required: true, message: 'Por favor seleccione una empresa' }]}
           >
-            <Select placeholder="Seleccione una empresa">
+            <AntdSelect placeholder="Seleccione una empresa">
               <Option value="1">Empresa ABC</Option>
               <Option value="2">Grupo Tut</Option>
               <Option value="3">Alexa Tut</Option>
               <Option value="4">Cliente DEF</Option>
-            </Select>
-          </Form.Item>
+            </AntdSelect>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="tipo_licencia_id"
             label="Tipo de Licencia"
             rules={[{ required: true, message: 'Por favor seleccione un tipo de licencia' }]}
           >
-            <Select placeholder="Seleccione un tipo de licencia">
+            <AntdSelect placeholder="Seleccione un tipo de licencia">
               <Option value="1">Prueba 90 días</Option>
               <Option value="2">Anual</Option>
               <Option value="3">Mensual</Option>
               <Option value="4">6 Meses</Option>
-            </Select>
-          </Form.Item>
+            </AntdSelect>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="fecha_inicio"
             label="Fecha de Inicio"
           >
             <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="fecha_fin"
             label="Fecha de Finalización"
           >
             <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
-          </Form.Item>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="activa"
             label="¿Está Activa?"
             rules={[{ required: true, message: 'Por favor seleccione si la licencia está activa' }]}
           >
-            <Select placeholder="Seleccione una opción" options={[
-              { value: 'true', label: 'Sí' },
-              { value: 'false', label: 'No' }
-            ]} />
-          </Form.Item>
+            <AntdSelect 
+              placeholder="Seleccione una opción" 
+              options={[
+                { value: 'true', label: 'Sí' },
+                { value: 'false', label: 'No' }
+              ]} 
+            />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="notas"
             label="Notas"
           >
-            <Input.TextArea rows={4} />
-          </Form.Item>
-        </Form>
+            <TextArea id="notas-textarea" rows={4} />
+          </AntdForm.Item>
+        </AntdForm>
       </Modal>
     </Card>
   );

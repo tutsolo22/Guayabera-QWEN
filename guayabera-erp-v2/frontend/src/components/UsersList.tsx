@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Tag, Space } from 'antd';
-import axios from 'axios';
+import { Table, Button, Modal, Form as AntdForm, Input as AntdInput, Select as AntdSelect, message, Tag, Space } from 'antd';
 
-const { Option } = Select;
+const { Option } = AntdSelect;
 
 const UsersList: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [form] = AntdForm.useForm();
 
   // Mock data for users
   useEffect(() => {
@@ -120,8 +120,9 @@ const UsersList: React.FC = () => {
     },
     {
       title: 'Estado',
+      dataIndex: 'is_active',
       key: 'is_active',
-      render: (record: any) => (
+      render: (text: any, record: any) => (
         <Tag color={record.is_active ? 'green' : 'red'}>
           {record.is_active ? 'Activo' : 'Inactivo'}
         </Tag>
@@ -129,12 +130,12 @@ const UsersList: React.FC = () => {
     },
     {
       title: 'Acciones',
-      key: 'actions',
+      key: 'acciones',
       render: (record: any) => (
-        <span>
+        <Space>
           <Button type="link" onClick={() => showModal(record)}>Editar</Button>
           <Button danger type="link">Eliminar</Button>
-        </span>
+        </Space>
       ),
     },
   ];
@@ -166,20 +167,20 @@ const UsersList: React.FC = () => {
         okText="Guardar"
         cancelText="Cancelar"
       >
-        {/* @ts-ignore */}
-        <Form
+        <AntdForm
           layout="vertical"
+          form={form}
           name="user_form"
         >
-          <Form.Item
+          <AntdForm.Item
             name="nombre_completo"
             label="Nombre Completo"
             rules={[{ required: true, message: 'Por favor ingrese el nombre completo' }]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="nombre-completo-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="email"
             label="Email"
             rules={[
@@ -187,31 +188,31 @@ const UsersList: React.FC = () => {
               { type: 'email', message: 'Ingrese un email válido' }
             ]}
           >
-            <Input />
-          </Form.Item>
+            <AntdInput id="email-input" />
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="tipo_usuario"
             label="Tipo de Usuario"
             rules={[{ required: true, message: 'Por favor seleccione el tipo de usuario' }]}
           >
-            <Select placeholder="Seleccione el tipo de usuario">
+            <AntdSelect placeholder="Seleccione el tipo de usuario">
               <Option value="normal">Normal</Option>
               <Option value="superuser">Super Usuario</Option>
-            </Select>
-          </Form.Item>
+            </AntdSelect>
+          </AntdForm.Item>
           
-          <Form.Item
+          <AntdForm.Item
             name="is_active"
             label="¿Está Activo?"
             rules={[{ required: true, message: 'Por favor seleccione el estado del usuario' }]}
           >
-            <Select id="is_active" placeholder="Seleccione una opción">
-              <Select.Option value="true">Sí</Select.Option>
-              <Select.Option value="false">No</Select.Option>
-            </Select>
-          </Form.Item>
-        </Form>
+            <AntdSelect id="is_active" placeholder="Seleccione una opción">
+              <Option value="true">Sí</Option>
+              <Option value="false">No</Option>
+            </AntdSelect>
+          </AntdForm.Item>
+        </AntdForm>
       </Modal>
     </div>
   );

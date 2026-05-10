@@ -1,19 +1,22 @@
-type ReportHandler = (metric: any) => void;
+const reportWebVitals = (onPerfEntry: any) => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then((webVitals) => {
+      // Usar la notación de corchetes para acceder a las propiedades dinámicamente
+      // para evitar errores de TypeScript
+      const getCLS = (webVitals as any).getCLS;
+      const getFID = (webVitals as any).getFID;
+      const getFCP = (webVitals as any).getFCP;
+      const getLCP = (webVitals as any).getLCP;
+      const getTTFB = (webVitals as any).getTTFB;
 
-const reportWebVitals = (onPerfEntry?: ReportHandler) => {
-  if (onPerfEntry && typeof onPerfEntry === 'function') {
-    import('web-vitals')
-      .then((webVitals) => {
-        // Acceder a las funciones a través del objeto webVitals
-        webVitals.getCLS && webVitals.getCLS(onPerfEntry);
-        webVitals.getFID && webVitals.getFID(onPerfEntry);
-        webVitals.getFCP && webVitals.getFCP(onPerfEntry);
-        webVitals.getLCP && webVitals.getLCP(onPerfEntry);
-        webVitals.getTTFB && webVitals.getTTFB(onPerfEntry);
-      })
-      .catch((error) => {
-        console.error('Error importing web-vitals:', error);
-      });
+      getCLS && getCLS(onPerfEntry);
+      getFID && getFID(onPerfEntry);
+      getFCP && getFCP(onPerfEntry);
+      getLCP && getLCP(onPerfEntry);
+      getTTFB && getTTFB(onPerfEntry);
+    }).catch((error) => {
+      console.error('Error importing web-vitals:', error);
+    });
   }
 };
 
