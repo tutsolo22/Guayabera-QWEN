@@ -1,100 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form as AntdForm, Input as AntdInput, Select as AntdSelect, message, Tag, Space } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Button, Form as AntdForm, Input as AntdInput, Modal, Select as AntdSelect, Space, Table, Tag, message } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { api, getApiErrorMessage } from '../services/authService';
 
 const { Option } = AntdSelect;
 
+interface TenantUser {
+  id: string;
+  email: string;
+  nombre_completo?: string;
+  tipo_usuario: string;
+  tenant_id?: string;
+  is_active: boolean;
+}
+
 const UsersList: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<TenantUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingUser, setEditingUser] = useState<any>(null);
   const [form] = AntdForm.useForm();
 
-  // Mock data for users
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/tenant-portal/usuarios');
+      setUsers(response.data.usuarios);
+    } catch (error: any) {
+      message.error(getApiErrorMessage(error, 'Error al cargar usuarios'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // En una implementación real, esto llamaría a la API
-    setUsers([
-      {
-        id: '1',
-        email: 'admin@empresaabc.com',
-        nombre_completo: 'Juan Pérez',
-        tipo_usuario: 'normal',
-        tenant_id: '1',
-        is_active: true
-      },
-      {
-        id: '2',
-        email: 'maria@grupotut.com',
-        nombre_completo: 'María López',
-        tipo_usuario: 'normal',
-        tenant_id: '2',
-        is_active: true
-      },
-      {
-        id: '3',
-        email: 'contacto@alexatut.com',
-        nombre_completo: 'Carlos Ruiz',
-        tipo_usuario: 'normal',
-        tenant_id: '3',
-        is_active: false
-      },
-      {
-        id: '4',
-        email: 'admin@guayabera-erp.com',
-        nombre_completo: 'Super Administrador',
-        tipo_usuario: 'superuser',
-        tenant_id: null,
-        is_active: true
-      }
-    ]);
+    fetchUsers();
   }, []);
 
-  const showModal = (user?: any) => {
-    setEditingUser(user || null);
-    if (user) {
-      form.setFieldsValue({
-        nombre_completo: user.nombre_completo,
-        email: user.email,
-        tipo_usuario: user.tipo_usuario,
-        is_active: String(user.is_active)
-      });
-    } else {
-      form.resetFields();
-    }
-    setModalVisible(true);
-  };
-
-  const handleOk = async () => {
+  const handleCreateUser = async () => {
     try {
       const values = await form.validateFields();
-      
-      if (editingUser) {
-        // Actualizar usuario existente
-        message.success('Usuario actualizado correctamente');
-        setUsers(users.map(u => u.id === editingUser.id ? {...editingUser, ...values} : u));
-      } else {
-        // Crear nuevo usuario
-        const newUser = {
-          id: String(users.length + 1),
-          ...values
-        };
-        message.success('Usuario creado correctamente');
-        setUsers([...users, newUser]);
-      }
+      await api.post('/tenant-portal/usuarios', values);
+      message.success('Usuario creado correctamente');
       setModalVisible(false);
       form.resetFields();
-      
-      // Refresh the list
-      // In a real implementation, this would call the API
-    } catch (error) {
-      console.log('Validation failed:', error);
+      fetchUsers();
+    } catch (error: any) {
+      if (error?.errorFields) {
+        return;
+      }
+      message.error(getApiErrorMessage(error, 'Error al crear usuario'));
     }
-  };
-
-  const handleCancel = () => {
-    setModalVisible(false);
-    setEditingUser(null);
-    form.resetFields();
   };
 
   const columns = [
@@ -113,8 +68,8 @@ const UsersList: React.FC = () => {
       dataIndex: 'tipo_usuario',
       key: 'tipo_usuario',
       render: (tipo: string) => (
-        <Tag color={tipo === 'superuser' ? 'red' : 'blue'}>
-          {tipo === 'superuser' ? 'Super Usuario' : 'Normal'}
+        <Tag color={tipo === 'admin_empresa' ? 'purple' : 'blue'}>
+          {tipo === 'admin_empresa' ? 'Admin empresa' : 'Normal'}
         </Tag>
       ),
     },
@@ -122,94 +77,79 @@ const UsersList: React.FC = () => {
       title: 'Estado',
       dataIndex: 'is_active',
       key: 'is_active',
-      render: (text: any, record: any) => (
-        <Tag color={record.is_active ? 'green' : 'red'}>
-          {record.is_active ? 'Activo' : 'Inactivo'}
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'green' : 'red'}>
+          {isActive ? 'Activo' : 'Inactivo'}
         </Tag>
-      ),
-    },
-    {
-      title: 'Acciones',
-      key: 'acciones',
-      render: (record: any) => (
-        <Space>
-          <Button type="link" onClick={() => showModal(record)}>Editar</Button>
-          <Button danger type="link">Eliminar</Button>
-        </Space>
       ),
     },
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ color: '#1B365D', marginBottom: 16 }}>Gestión de Usuarios</h2>
-      
-      <Button 
-        type="primary" 
-        style={{ marginBottom: 16 }}
-        onClick={() => showModal()}
-      >
-        Agregar Usuario
-      </Button>
-      
-      <Table 
-        dataSource={users} 
-        columns={columns} 
+    <div style={{ padding: 24, textAlign: 'left' }}>
+      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ color: '#1B365D', margin: 0 }}>Usuarios del Tenant</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
+          Agregar Usuario
+        </Button>
+      </Space>
+
+      <Table
+        dataSource={users}
+        columns={columns}
         loading={loading}
         rowKey="id"
       />
-      
+
       <Modal
-        title={editingUser ? "Editar Usuario" : "Agregar Usuario"}
+        title="Agregar Usuario"
         open={modalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
+        onOk={handleCreateUser}
+        onCancel={() => {
+          setModalVisible(false);
+          form.resetFields();
+        }}
         okText="Guardar"
         cancelText="Cancelar"
+        destroyOnClose
       >
-        <AntdForm
-          layout="vertical"
-          form={form}
-          name="user_form"
-        >
+        <AntdForm layout="vertical" form={form} name="tenant_user_form">
           <AntdForm.Item
             name="nombre_completo"
             label="Nombre Completo"
-            rules={[{ required: true, message: 'Por favor ingrese el nombre completo' }]}
+            rules={[{ required: true, message: 'Ingresa el nombre completo' }]}
           >
-            <AntdInput id="nombre-completo-input" />
+            <AntdInput />
           </AntdForm.Item>
-          
+
           <AntdForm.Item
             name="email"
             label="Email"
             rules={[
-              { required: true, message: 'Por favor ingrese el email' },
-              { type: 'email', message: 'Ingrese un email válido' }
+              { required: true, message: 'Ingresa el email' },
+              { type: 'email', message: 'Ingresa un email valido' }
             ]}
           >
-            <AntdInput id="email-input" />
+            <AntdInput />
           </AntdForm.Item>
-          
+
+          <AntdForm.Item
+            name="password"
+            label="Contrasena temporal"
+            rules={[{ required: true, message: 'Ingresa una contrasena temporal' }]}
+          >
+            <AntdInput.Password />
+          </AntdForm.Item>
+
           <AntdForm.Item
             name="tipo_usuario"
             label="Tipo de Usuario"
-            rules={[{ required: true, message: 'Por favor seleccione el tipo de usuario' }]}
+            initialValue="normal"
+            rules={[{ required: true, message: 'Selecciona el tipo de usuario' }]}
           >
             <AntdSelect placeholder="Seleccione el tipo de usuario">
               <Option value="normal">Normal</Option>
-              <Option value="superuser">Super Usuario</Option>
-            </AntdSelect>
-          </AntdForm.Item>
-          
-          <AntdForm.Item
-            name="is_active"
-            label="¿Está Activo?"
-            rules={[{ required: true, message: 'Por favor seleccione el estado del usuario' }]}
-          >
-            <AntdSelect id="is_active" placeholder="Seleccione una opción">
-              <Option value="true">Sí</Option>
-              <Option value="false">No</Option>
+              <Option value="admin_empresa">Admin empresa</Option>
             </AntdSelect>
           </AntdForm.Item>
         </AntdForm>

@@ -14,10 +14,12 @@ class GrupoCorporativoCreate(GrupoCorporativoBase):
 class GrupoCorporativoUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class GrupoCorporativoOut(GrupoCorporativoBase):
     id: str
+    is_active: bool
 
     class Config:
         from_attributes = True
@@ -26,7 +28,7 @@ class GrupoCorporativoOut(GrupoCorporativoBase):
 class TenantBase(BaseModel):
     name: str
     subdomain: str
-    schema_name: str
+    schema_name: Optional[str] = None
     es_grupo_corporativo: bool = False
     grupo_corporativo_id: Optional[str] = None
     contact_email: Optional[str] = None

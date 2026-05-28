@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { login } from '../services/authService';
 import { AppDispatch, RootState } from '../store';
 import { clearError } from '../store/authSlice';
+import { getDashboardPath } from '../utils/authRouting';
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -16,11 +17,23 @@ const Login: React.FC = () => {
   const onFinish = async (values: any) => {
     setLoading(true);
     try {
-      await dispatch(login({ email: values.username, password: values.password })).unwrap();
+      const result = await dispatch(login({ email: values.username, password: values.password })).unwrap();
       message.success('Inicio de sesión exitoso');
-      navigate('/');
+      navigate(getDashboardPath(result.user), { replace: true });
     } catch (error: any) {
-      message.error(error.message || 'Error en el inicio de sesión');
+      const errorMessage = error?.message || error || 'Error en el inicio de sesión';
+
+      if (error?.status === 404 || error?.code === 'EMAIL_NOT_FOUND') {
+        dispatch(clearError());
+        message.info('Correo no registrado. Crea una cuenta para continuar.');
+        navigate('/register', {
+          replace: true,
+          state: { email: values.username },
+        });
+        return;
+      }
+
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }

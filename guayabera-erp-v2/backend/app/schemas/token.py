@@ -12,6 +12,9 @@ class TokenVerificacionBase(BaseModel):
 class TokenVerificacionCreate(TokenVerificacionBase):
     usuario_id: Optional[str] = None
     admin_id: Optional[str] = None
+    tenant_id: Optional[str] = None
+    destinatario_email: Optional[str] = None
+    nombre_completo: Optional[str] = None
 
 
 class TokenVerificacionOut(TokenVerificacionBase):
@@ -33,5 +36,5 @@ class SolicitudRecuperacion(BaseModel):
 
 
 class ConfirmacionToken(BaseModel):
-    token: str
+    token: Optional[str] = None
     nueva_contrasena: Optional[str] = None  # Solo para recuperación de contraseña

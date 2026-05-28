@@ -42,12 +42,37 @@ security = HTTPBearer()
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: dict
 
 
 class LoginRequest(BaseModel):
     email: str
     password: str
     tenant_id: Optional[str] = None  # Opcional para superusuarios
+
+
+def build_auth_payload(user):
+    user_type = "admin" if isinstance(user, Admin) else "user"
+    tipo_usuario = "superuser" if isinstance(user, Admin) else getattr(user, "tipo_usuario", "normal")
+    user_id = str(user.id)
+    token_data = {
+        "sub": user_id,
+        "email": user.email,
+        "user_type": user_type,
+        "tipo_usuario": tipo_usuario,
+    }
+    public_user = {
+        "id": user_id,
+        "email": user.email,
+        "nombre_completo": getattr(user, "nombre_completo", None),
+        "user_type": user_type,
+        "tipo_usuario": tipo_usuario,
+    }
+    tenant_id = getattr(user, "tenant_id", None)
+    if tenant_id:
+        token_data["tenant_id"] = str(tenant_id)
+        public_user["tenant_id"] = str(tenant_id)
+    return token_data, public_user
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -71,6 +96,8 @@ async def authenticate_user(db: AsyncSession, email: str, password: str, tenant_
         # Si el usuario pertenece a un tenant, verificar que coincida
         if tenant_id and user.tenant_id != tenant_id:
             return None
+        if not user.is_active:
+            return None
         if not verify_password(password, user.hashed_password):
             return None
         return user
@@ -80,7 +107,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str, tenant_
     result = await db.execute(stmt)
     admin = result.scalar_one_or_none()
     
-    if admin and verify_password(password, admin.hashed_password):
+    if admin and admin.is_active and verify_password(password, admin.hashed_password):
         return admin
     
     return None
@@ -93,6 +120,18 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     Si es un superusuario, no requiere tenant_id.
     Si es un usuario normal, requiere tenant_id.
     """
+    user_exists_result = await db.execute(select(Usuario.id).where(Usuario.email == request.email))
+    admin_exists_result = await db.execute(select(Admin.id).where(Admin.email == request.email))
+
+    if not user_exists_result.scalar_one_or_none() and not admin_exists_result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "EMAIL_NOT_FOUND",
+                "message": "Correo no registrado",
+            },
+        )
+
     user = await authenticate_user(
         db, 
         request.email, 
@@ -124,25 +163,14 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
                 detail="Licencia expirada o inactiva. Por favor renueve su licencia."
             )
     
-    # Determinar tipo de usuario y crear token
-    user_type = "admin" if isinstance(user, Admin) else "user"
-    user_data = {
-        "sub": user.id,
-        "email": user.email,
-        "user_type": user_type,
-        "tipo_usuario": getattr(user, 'tipo_usuario', None) if isinstance(user, Usuario) else None
-    }
-    
-    # Solo agregar tenant_id si no es superusuario
-    if isinstance(user, Usuario) and user.tenant_id:
-        user_data["tenant_id"] = user.tenant_id
+    user_data, public_user = build_auth_payload(user)
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data=user_data, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "user": public_user}
 
 
 def generar_token_unico(longitud: int = 32) -> str:
@@ -202,7 +230,10 @@ async def solicitar_registro(
         tipo_token="registro",
         token=token_verificacion,
         expira_en=expiracion,
-        usado=False
+        usado=False,
+        tenant_id=nuevo_tenant.id,
+        destinatario_email=solicitud.email,
+        nombre_completo=solicitud.nombre_completo
     )
     
     db.add(nuevo_token)
@@ -249,7 +280,7 @@ async def confirmar_registro(
     # Buscar el token de verificación
     stmt = select(TokenVerificacion).where(
         TokenVerificacion.token == token,
-        TokenVerificacion.tipo_token == "registro",
+        TokenVerificacion.tipo_token.in_(["registro", "invitacion_tenant_admin"]),
         TokenVerificacion.usado == False,
         TokenVerificacion.expira_en > datetime.utcnow()
     )
@@ -262,25 +293,35 @@ async def confirmar_registro(
             detail="Token inválido, expirado o ya utilizado"
         )
     
-    # Actualizar el token como usado
-    token_verif.usado = True
-    await db.commit()
+    if not request.nueva_contrasena:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contrasena es requerida"
+        )
+
+    if not token_verif.destinatario_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token sin correo asociado"
+        )
+
+    stmt = select(Usuario).where(Usuario.email == token_verif.destinatario_email)
+    result = await db.execute(stmt)
+    existing_user = result.scalar_one_or_none()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El email ya esta registrado"
+        )
     
-    # En este punto necesitamos crear el usuario y asignarle un tenant
-    # Como no guardamos la información del usuario en el token, creamos uno nuevo
-    # En una implementación real, el token contendría más información
-    
-    # Crear el nuevo usuario
     hashed_password = get_password_hash(request.nueva_contrasena)
-    
-    # En una implementación completa, aquí obtendríamos el email del token
-    # Por ahora, simulamos que obtenemos la información necesaria
     nuevo_usuario = Usuario(
-        email="temp@example.com",  # Este valor se obtendría del token en la implementación real
+        email=token_verif.destinatario_email,
         hashed_password=hashed_password,
-        nombre_completo="Temporal User",  # Este valor se obtendría del token en la implementación real
-        tipo_usuario="normal",
-        tenant_id=None  # Se asignará después de crear el tenant
+        nombre_completo=token_verif.nombre_completo or token_verif.destinatario_email,
+        tipo_usuario="admin_empresa" if token_verif.tipo_token in ["registro", "invitacion_tenant_admin"] else "normal",
+        tenant_id=token_verif.tenant_id
     )
     
     db.add(nuevo_usuario)
@@ -295,17 +336,19 @@ async def confirmar_registro(
     
     if tipo_licencia:
         fecha_fin = datetime.utcnow() + timedelta(days=90)
-        nueva_licencia = Licencia(
-            tenant_id=nuevo_usuario.tenant_id,
-            tipo_licencia_id=tipo_licencia.id,
-            codigo=generar_token_unico(16),
-            fecha_fin=fecha_fin,
-            activa=True,
-            usada=False
-        )
-        
-        db.add(nueva_licencia)
-        await db.commit()
+        if nuevo_usuario.tenant_id:
+            nueva_licencia = Licencia(
+                tenant_id=nuevo_usuario.tenant_id,
+                tipo_licencia_id=tipo_licencia.id,
+                codigo=generar_token_unico(16),
+                fecha_fin=fecha_fin,
+                activa=True,
+                usada=False
+            )
+            db.add(nueva_licencia)
+
+    token_verif.usado = True
+    await db.commit()
     
     return {"mensaje": "Cuenta creada exitosamente. Ya puede iniciar sesión."}
 
@@ -482,16 +525,11 @@ async def register_super_user(
     await db.refresh(admin)
     
     # Crear token de autenticación
-    user_data = {
-        "sub": admin.id,
-        "email": admin.email,
-        "user_type": "admin",
-        "tipo_usuario": "superuser"
-    }
+    user_data, public_user = build_auth_payload(admin)
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data=user_data, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "user": public_user}

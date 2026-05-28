@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, tenants, users, operaciones_filiales, licencias, admin
+from app.api.v1.endpoints import auth, tenants, users, operaciones_filiales, licencias, admin, tenant_portal
 
 api_router = APIRouter()
 
@@ -20,3 +20,6 @@ api_router.include_router(operaciones_filiales.router, prefix="/operaciones-fili
 
 # Rutas de licencias
 api_router.include_router(licencias.router, prefix="/licencias", tags=["licencias"])
+
+# Rutas operativas del tenant autenticado
+api_router.include_router(tenant_portal.router, prefix="/tenant-portal", tags=["tenant-portal"])

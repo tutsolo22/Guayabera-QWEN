@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LockOutlined, UserOutlined, MailOutlined } from '@ant-design/icons';
 import { Button, Form, Input, message } from 'antd';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { register } from '../services/authService';
 import { AppDispatch, RootState } from '../store';
@@ -10,8 +10,17 @@ import { clearError } from '../store/authSlice';
 const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const { error } = useSelector((state: RootState) => state.auth) as { error: string | null };
+  const initialEmail = (location.state as { email?: string } | null)?.email || '';
+  const visibleError = initialEmail ? null : error;
+
+  useEffect(() => {
+    if (initialEmail) {
+      dispatch(clearError());
+    }
+  }, [dispatch, initialEmail]);
 
   const onFinish = async (values: any) => {
     setLoading(true);
@@ -78,7 +87,7 @@ const Register: React.FC = () => {
         
         <Form
           name="register_form"
-          initialValues={ { remember: true } }
+          initialValues={ { remember: true, email: initialEmail } }
           onFinish={onFinish}
         >
           <Form.Item
@@ -114,9 +123,9 @@ const Register: React.FC = () => {
             />
           </Form.Item>
           
-          {error && (
+          {visibleError && (
             <Form.Item>
-              <div style={{ color: '#DC3545', textAlign: 'center', marginBottom: 16 }}>{error}</div>
+              <div style={{ color: '#DC3545', textAlign: 'center', marginBottom: 16 }}>{visibleError}</div>
             </Form.Item>
           )}
 

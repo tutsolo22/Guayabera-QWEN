@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { login, register } from '../services/authService';
+import { getUserFromToken, login, register } from '../services/authService';
 
 interface AuthState {
   user: any | null;
@@ -9,10 +9,13 @@ interface AuthState {
   error: string | null;
 }
 
+const savedToken = localStorage.getItem('token');
+const savedUser = getUserFromToken(savedToken);
+
 const initialState: AuthState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  user: savedUser,
+  token: savedToken,
+  isAuthenticated: Boolean(savedToken && savedUser),
   loading: false,
   error: null,
 };
@@ -50,7 +53,7 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, { payload }) => {
         state.loading = false;
-        state.error = payload as string;
+        state.error = typeof payload === 'string' ? payload : (payload as any)?.message || 'Error de autenticacion';
       })
       // Register cases
       .addCase(register.pending, (state) => {

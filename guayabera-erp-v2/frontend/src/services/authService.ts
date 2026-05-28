@@ -2,9 +2,58 @@ import axios from 'axios';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
 // Create axios instance
-const api = axios.create({
+export const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api/v1',
 });
+
+export const getUserFromToken = (token: string | null) => {
+  if (!token) return null;
+
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+    const payload = JSON.parse(atob(padded));
+    return {
+      id: payload.sub,
+      email: payload.email,
+      nombre_completo: payload.nombre_completo,
+      user_type: payload.user_type,
+      tipo_usuario: payload.tipo_usuario,
+      tenant_id: payload.tenant_id,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const getApiErrorDetail = (error: any) => error?.response?.data?.detail;
+
+export const getApiErrorMessage = (error: any, fallback: string) => {
+  const detail = getApiErrorDetail(error);
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg || item?.message || String(item))
+      .join(', ');
+  }
+
+  return (
+    (typeof detail === 'string' ? detail : detail?.message) ||
+    error?.response?.data?.message ||
+    error?.message ||
+    fallback
+  );
+};
+
+const getApiErrorPayload = (error: any, fallback: string) => {
+  const detail = getApiErrorDetail(error);
+
+  return {
+    message: getApiErrorMessage(error, fallback),
+    status: error?.response?.status,
+    code: detail?.code || error?.response?.data?.code,
+  };
+};
 
 // Request interceptor to add token to requests
 api.interceptors.request.use((config) => {
@@ -19,7 +68,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }
@@ -32,12 +81,18 @@ export const login = createAsyncThunk(
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await api.post('/auth/login', { email, password });
+      const token = response.data.access_token;
+      const user = response.data.user || getUserFromToken(token) || {
+        email,
+        tipo_usuario: 'normal',
+        user_type: 'user',
+      };
       return {
-        user: response.data.user,
-        token: response.data.access_token,
+        user,
+        token,
       };
     } catch (error: any) {
-      return rejectWithValue(error.response.data.detail || 'Error de autenticación');
+      return rejectWithValue(getApiErrorPayload(error, 'Error de autenticacion'));
     }
   }
 );
@@ -45,14 +100,14 @@ export const login = createAsyncThunk(
 export const register = createAsyncThunk(
   'auth/register',
   async (
-    { email, password, nombre_completo }: { email: string; password: string; nombre_completo: string },
+    { email, nombre_completo }: { email: string; password: string; nombre_completo: string },
     { rejectWithValue }
   ) => {
     try {
       const response = await api.post('/auth/solicitar-registro', { email, nombre_completo });
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(error.response.data.detail || 'Error en el registro');
+      return rejectWithValue(getApiErrorMessage(error, 'Error en el registro'));
     }
   }
 );
@@ -62,7 +117,7 @@ export const recoverPassword = async (email: string) => {
     const response = await api.post('/auth/solicitar-recuperacion', { email });
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response.data.detail || 'Error al recuperar la contraseña');
+    throw new Error(getApiErrorMessage(error, 'Error al recuperar la contrasena'));
   }
 };
 
@@ -71,7 +126,7 @@ export const confirmRegistration = async (token: string, newPassword: string) =>
     const response = await api.post(`/auth/confirmar-registro/${token}`, { nueva_contrasena: newPassword });
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response.data.detail || 'Error al confirmar el registro');
+    throw new Error(getApiErrorMessage(error, 'Error al confirmar el registro'));
   }
 };
 
@@ -81,7 +136,7 @@ export const getTenants = async () => {
     const response = await api.get('/tenants/');
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al obtener tenants');
+    throw new Error(getApiErrorMessage(error, 'Error al obtener tenants'));
   }
 };
 
@@ -90,7 +145,7 @@ export const getUsers = async () => {
     const response = await api.get('/users/');
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al obtener usuarios');
+    throw new Error(getApiErrorMessage(error, 'Error al obtener usuarios'));
   }
 };
 
@@ -99,7 +154,7 @@ export const getLicenses = async () => {
     const response = await api.get('/licencias/');
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al obtener licencias');
+    throw new Error(getApiErrorMessage(error, 'Error al obtener licencias'));
   }
 };
 
@@ -109,7 +164,7 @@ export const createTenant = async (tenantData: { name: string; subdomain: string
     const response = await api.post('/admin/crear-tenant', tenantData);
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al crear tenant');
+    throw new Error(getApiErrorMessage(error, 'Error al crear tenant'));
   }
 };
 
@@ -118,7 +173,7 @@ export const inviteTenantAdmin = async (email: string, tenantId: string) => {
     const response = await api.post('/admin/invitar-tenant-admin', { email, tenant_id: tenantId });
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al invitar administrador');
+    throw new Error(getApiErrorMessage(error, 'Error al invitar administrador'));
   }
 };
 
@@ -127,7 +182,7 @@ export const getSuperAdminTenants = async () => {
     const response = await api.get('/admin/tenants');
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al obtener tenants');
+    throw new Error(getApiErrorMessage(error, 'Error al obtener tenants'));
   }
 };
 
@@ -136,16 +191,19 @@ export const getCorporations = async () => {
     const response = await api.get('/admin/corporaciones');
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al obtener corporaciones');
+    throw new Error(getApiErrorMessage(error, 'Error al obtener corporaciones'));
   }
 };
 
 export const createCorporation = async (corpData: { name: string; descripcion?: string }) => {
   try {
-    const response = await api.post('/admin/crear-corporacion', corpData);
+    const response = await api.post('/admin/crear-corporacion', {
+      nombre: corpData.name,
+      descripcion: corpData.descripcion,
+    });
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al crear corporación');
+    throw new Error(getApiErrorMessage(error, 'Error al crear corporacion'));
   }
 };
 
@@ -154,7 +212,7 @@ export const createLicense = async (licenseData: any) => {
     const response = await api.post('/admin/crear-licencia', licenseData);
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al crear licencia');
+    throw new Error(getApiErrorMessage(error, 'Error al crear licencia'));
   }
 };
 
@@ -163,7 +221,7 @@ export const activateTenant = async (tenantId: string) => {
     const response = await api.put(`/admin/activar-tenant/${tenantId}`);
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al activar tenant');
+    throw new Error(getApiErrorMessage(error, 'Error al activar tenant'));
   }
 };
 
@@ -172,6 +230,6 @@ export const deactivateTenant = async (tenantId: string) => {
     const response = await api.put(`/admin/desactivar-tenant/${tenantId}`);
     return response.data;
   } catch (error: any) {
-    throw new Error(error.response?.data?.detail || 'Error al desactivar tenant');
+    throw new Error(getApiErrorMessage(error, 'Error al desactivar tenant'));
   }
 };

@@ -13,10 +13,10 @@ import {
   CrownOutlined,
   HistoryOutlined
 } from '@ant-design/icons';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { ConfigProvider } from 'antd';
 import esES from 'antd/lib/locale/es_ES';
-import { store } from './store';
+import { RootState, store } from './store';
 import Login from './components/Login';
 import Register from './components/Register';
 import CreateAccount from './components/CreateAccount';
@@ -28,11 +28,15 @@ import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import HistoryPage from './components/HistoryPage';
 import './App';
+import { getDashboardPath, isSuperUser, isTenantUser } from './utils/authRouting';
 
 const { Header, Content, Footer, Sider } = Layout;
 
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const superUser = isSuperUser(user);
+  const tenantUser = isTenantUser(user);
   
   const {
     token: { colorBgContainer },
@@ -42,7 +46,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     {
       key: 'dashboard',
       icon: <UserOutlined />,
-      label: <Link to="/">Dashboard</Link>,
+      label: <Link to={getDashboardPath(user)}>Dashboard</Link>,
     },
     {
       key: 'history',
@@ -53,23 +57,27 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       key: 'tenants',
       icon: <TeamOutlined />,
       label: <Link to="/tenants">Empresas</Link>,
+      hidden: !tenantUser,
     },
     {
       key: 'licenses',
       icon: <LockOutlined />,
       label: <Link to="/licenses">Licencias</Link>,
+      hidden: !tenantUser,
     },
     {
       key: 'users',
       icon: <ShopOutlined />,
       label: <Link to="/users">Usuarios</Link>,
+      hidden: !tenantUser,
     },
     {
       key: 'super-admin',
       icon: <CrownOutlined />,
       label: <Link to="/super-admin">Admin Global</Link>,
+      hidden: !superUser,
     },
-  ];
+  ].filter((item) => !item.hidden);
 
   return (
     <Layout hasSider style={{ minHeight: '100vh' }}>
@@ -142,12 +150,20 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const App: React.FC = () => {
+const HomeRoute: React.FC = () => {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+
+  if (isAuthenticated) {
+    return <Navigate to={getDashboardPath(user)} replace />;
+  }
+
+  return <HistoryPage />;
+};
+
+const AppRoutes: React.FC = () => {
   return (
-    <Provider store={store}>
-      <ConfigProvider locale={esES}>
-        <Routes>
-          <Route path="/" element={<HistoryPage />} />
+    <Routes>
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/historia" element={
             <MainLayout>
               <HistoryPage />
@@ -158,28 +174,28 @@ const App: React.FC = () => {
           <Route path="/crear-cuenta/:token" element={<CreateAccount />} />
           <Route path="/dashboard" element={
             <MainLayout>
-              <ProtectedRoute allowedRoles={['user', 'normal', 'admin']}>
+              <ProtectedRoute allowedRoles={['user', 'normal', 'admin', 'admin_empresa']}>
                 <Dashboard />
               </ProtectedRoute>
             </MainLayout>
           } />
           <Route path="/tenants" element={
             <MainLayout>
-              <ProtectedRoute allowedRoles={['user', 'normal', 'admin']}>
+              <ProtectedRoute allowedRoles={['user', 'normal', 'admin', 'admin_empresa']}>
                 <TenantsList />
               </ProtectedRoute>
             </MainLayout>
           } />
           <Route path="/licenses" element={
             <MainLayout>
-              <ProtectedRoute allowedRoles={['user', 'normal', 'admin']}>
+              <ProtectedRoute allowedRoles={['user', 'normal', 'admin', 'admin_empresa']}>
                 <LicensesList />
               </ProtectedRoute>
             </MainLayout>
           } />
           <Route path="/users" element={
             <MainLayout>
-              <ProtectedRoute allowedRoles={['user', 'normal', 'admin']}>
+              <ProtectedRoute allowedRoles={['user', 'normal', 'admin', 'admin_empresa']}>
                 <UsersList />
               </ProtectedRoute>
             </MainLayout>
@@ -193,6 +209,14 @@ const App: React.FC = () => {
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <Provider store={store}>
+      <ConfigProvider locale={esES}>
+        <AppRoutes />
       </ConfigProvider>
     </Provider>
   );

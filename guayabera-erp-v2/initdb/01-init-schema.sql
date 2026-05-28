@@ -9,7 +9,7 @@ CREATE SCHEMA IF NOT EXISTS public;
 
 -- Tabla para grupos corporativos
 CREATE TABLE IF NOT EXISTS grupos_corporativos (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     nombre VARCHAR(255) NOT NULL,
     descripcion TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS grupos_corporativos (
 
 -- Tabla para tenants (empresas)
 CREATE TABLE IF NOT EXISTS tenants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     name VARCHAR(255) NOT NULL,
     subdomain VARCHAR(255) UNIQUE NOT NULL,
     schema_name VARCHAR(255) UNIQUE NOT NULL,
@@ -29,12 +29,12 @@ CREATE TABLE IF NOT EXISTS tenants (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     es_grupo_corporativo BOOLEAN DEFAULT FALSE,
-    grupo_corporativo_id UUID REFERENCES grupos_corporativos(id)
+    grupo_corporativo_id VARCHAR(36) REFERENCES grupos_corporativos(id)
 );
 
 -- Tabla para tipos de licencia
 CREATE TABLE IF NOT EXISTS tipos_licencia (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
     duracion_dias INTEGER NOT NULL,
@@ -46,9 +46,9 @@ CREATE TABLE IF NOT EXISTS tipos_licencia (
 
 -- Tabla para licencias
 CREATE TABLE IF NOT EXISTS licencias (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    tipo_licencia_id UUID NOT NULL REFERENCES tipos_licencia(id),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    tenant_id VARCHAR(36) NOT NULL REFERENCES tenants(id),
+    tipo_licencia_id VARCHAR(36) NOT NULL REFERENCES tipos_licencia(id),
     codigo VARCHAR(50) UNIQUE NOT NULL,
     fecha_inicio TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     fecha_fin TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS licencias (
 
 -- Tabla para administradores del sistema (superusuarios)
 CREATE TABLE IF NOT EXISTS admins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     email VARCHAR(255) UNIQUE NOT NULL,
     nombre_completo VARCHAR(255),
     hashed_password VARCHAR(255) NOT NULL,
@@ -72,28 +72,37 @@ CREATE TABLE IF NOT EXISTS admins (
 
 -- Tabla para usuarios regulares
 CREATE TABLE IF NOT EXISTS usuarios (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     email VARCHAR(255) UNIQUE NOT NULL,
     nombre_completo VARCHAR(255),
     hashed_password VARCHAR(255) NOT NULL,
     tipo_usuario VARCHAR(20) DEFAULT 'normal',
     is_active BOOLEAN DEFAULT TRUE,
-    tenant_id UUID REFERENCES tenants(id),
+    tenant_id VARCHAR(36) REFERENCES tenants(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Tabla para tokens de verificación
 CREATE TABLE IF NOT EXISTS tokens_verificacion (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    usuario_id UUID REFERENCES usuarios(id),
-    admin_id UUID REFERENCES admins(id),
-    tipo_token VARCHAR(20) NOT NULL,  -- 'registro', 'recuperacion', 'activacion'
+    id VARCHAR(36) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    usuario_id VARCHAR(36) REFERENCES usuarios(id),
+    admin_id VARCHAR(36) REFERENCES admins(id),
+    tipo_token VARCHAR(50) NOT NULL,  -- 'registro', 'recuperacion', 'invitacion_tenant_admin'
     token VARCHAR(255) UNIQUE NOT NULL,
     usado BOOLEAN DEFAULT FALSE,
     expira_en TIMESTAMP WITH TIME ZONE NOT NULL,
+    tenant_id VARCHAR(36) REFERENCES tenants(id),
+    destinatario_email VARCHAR(255),
+    nombre_completo VARCHAR(255),
     creado_en TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE tokens_verificacion
+    ALTER COLUMN tipo_token TYPE VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(36) REFERENCES tenants(id),
+    ADD COLUMN IF NOT EXISTS destinatario_email VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS nombre_completo VARCHAR(255);
 
 -- Crear índices para mejorar el rendimiento
 CREATE INDEX IF NOT EXISTS idx_tenants_subdomain ON tenants(subdomain);
@@ -123,5 +132,5 @@ WHERE NOT EXISTS (SELECT 1 FROM tipos_licencia WHERE nombre = 'Anual');
 
 -- Insertar superusuario por defecto
 INSERT INTO admins (email, nombre_completo, hashed_password, is_verified) 
-SELECT 'admin@guayabera-erp.com', 'Super Administrador', '$2b$12$KSHgYrTK7mSsqJx2bdnZ.eumC9Qq5y.qNsS4w2Zk64Y.qY.Bh.J0C', TRUE  -- Contraseña: admin123
+SELECT 'admin@guayabera-erp.com', 'Super Administrador', '$2b$12$E9PVoslhSFJDhBab4tOK/e2wQIrTE2/4S4I8iknq6lu6UG5rQ8lrO', TRUE  -- Contraseña: admin123
 WHERE NOT EXISTS (SELECT 1 FROM admins WHERE email = 'admin@guayabera-erp.com');

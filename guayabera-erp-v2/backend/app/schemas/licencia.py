@@ -25,8 +25,8 @@ class TipoLicenciaUpdate(BaseModel):
 
 class TipoLicenciaOut(TipoLicenciaBase):
     id: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -35,9 +35,9 @@ class TipoLicenciaOut(TipoLicenciaBase):
 class LicenciaBase(BaseModel):
     tenant_id: str
     tipo_licencia_id: str
-    codigo: str
+    codigo: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
-    fecha_fin: datetime
+    fecha_fin: Optional[datetime] = None
     activa: bool = True
     usada: bool = False
     notas: Optional[str] = None
@@ -60,8 +60,8 @@ class LicenciaUpdate(BaseModel):
 
 class LicenciaOut(LicenciaBase):
     id: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

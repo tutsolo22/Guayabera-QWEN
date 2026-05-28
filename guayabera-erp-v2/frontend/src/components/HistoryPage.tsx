@@ -1,6 +1,5 @@
 import React from 'react';
 import { Layout, Card, Row, Col, Typography, Image, Button, Space } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 
 const { Header, Content, Footer } = Layout;

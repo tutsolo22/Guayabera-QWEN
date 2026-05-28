@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
+import { getDashboardPath, getUserRole } from '../utils/authRouting';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   // Check if user is authenticated and has the required role
-  const hasRequiredRole = user && allowedRoles.includes(user.tipo_usuario || user.role);
+  const hasRequiredRole = user && allowedRoles.includes(getUserRole(user));
 
   if (!isAuthenticated) {
     // Redirect to login if not authenticated
@@ -23,8 +24,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!hasRequiredRole) {
-    // Redirect to home if user doesn't have required role
-    return <Navigate to="/" />;
+    // Redirect authenticated users to their own dashboard.
+    return <Navigate to={getDashboardPath(user)} replace />;
   }
 
   // Render the protected component

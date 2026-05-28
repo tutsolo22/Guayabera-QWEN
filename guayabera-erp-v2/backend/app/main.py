@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import logging
 
@@ -75,9 +76,9 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.exception_handler(Exception)
 async def global_exception_handler(request: object, exc: Exception):
     logger.error(f"Error no manejado: {exc}")
-    return HTTPException(
+    return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Ha ocurrido un error interno en el servidor"
+        content={"detail": "Ha ocurrido un error interno en el servidor"}
     )
 
 
